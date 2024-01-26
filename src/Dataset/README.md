@@ -1,0 +1,2 @@
+# Downloading Data
+To download the data, make a file called `APIKEY` and paste in your 32 character API key from materials project. Then run the `download_data.py` file and it should do the rest, including properly sorting the data points into the same training, testing, and validation set used in the original project.

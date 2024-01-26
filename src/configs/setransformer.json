@@ -1,0 +1,18 @@
+{
+    "model": "setransformer",
+    "lmax_h": 4,
+    "hidden_irreps": "32x0o+32x0e+16x1o+16x1e+4x2o+4x2e+2x3o+2x3e+2x4e",
+    "num_graph_layers": 10,
+    "num_prepool_layers": 4,
+    "num_postpool_layers": 4,
+    "learning_rate": 5e-4,
+    "weight_decay": 0,
+    "optimizer": "adam",
+    "epochs": 400,
+    "batch_size": 200,
+    "radius": 8.0,
+    "max_neighbors": 12,
+    "normalize": true,
+    "layer_norm": "batch",
+    "pooling": "max"
+}
