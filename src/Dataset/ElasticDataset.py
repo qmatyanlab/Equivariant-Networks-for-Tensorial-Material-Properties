@@ -44,6 +44,7 @@ class ElasticDataset(CrystalSO3Dataset):
         asymmetric_coefs = torch.tensor(self.molecule_data[idx]["asymmetric_coefs"], dtype=torch.float32)
         symmetric_coefs = symmetric_coefs.reshape(1, 15)
         asymmetric_coefs = asymmetric_coefs.reshape(1, 6)
+        coef_dict = {"symmetric": symmetric_coefs, "asymmetric": asymmetric_coefs}
         if self.normalize:
-            coef_dict = self.normalizer.normalize({"symmetric": symmetric_coefs, "asymmetric": asymmetric_coefs})
+            coef_dict = self.normalizer.normalize(coef_dict)
         return coef_dict["symmetric"], coef_dict["asymmetric"]

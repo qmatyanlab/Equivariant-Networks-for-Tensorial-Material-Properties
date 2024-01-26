@@ -24,8 +24,24 @@ class DielectricDataset(CrystalSO3Dataset):
         # Setup target
         sph_coefs = self._get_coefs(idx)
         # Save voigt for special metric check
-        dielectric_tensor = torch.tensor(self.molecule_data[idx]["dielectric_tensor"], dtype=torch.float32).reshape(1, 6, 6)
+        dielectric_tensor = torch.tensor(self.molecule_data[idx]["dielectric_tensor"], dtype=torch.float32).reshape(1, 3, 3)
 
         return Data(x=x, node_attr=node_attr, edge_index=edge_index, edge_attr=edge_attr, edge_dis=edge_dis, 
-                    pos=pos, r_ij=r_ij, sph_coefs=sph_coefs, 
-                    dielectric_tensor=dielectric_tensor)
+                    pos=pos, r_ij=r_ij, sph_coefs=sph_coefs, dielectric_tensor=dielectric_tensor)
+    
+    def _get_coefs(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Gets the coefficients from the certain index in their combined and normalized form
+
+        Args:
+            idx: Index of coefficients to get
+
+        Returns:
+            The combined and normalized coefficients.
+        """
+        sph_coefs = torch.tensor(self.molecule_data[idx]["sph_coefs"])
+        sph_coefs = sph_coefs.reshape(1, 6)
+        coef_dict = {"sph": sph_coefs}
+        if self.normalize:
+            coef_dict = self.normalizer.normalize(coef_dict)
+        return coef_dict["sph"]
