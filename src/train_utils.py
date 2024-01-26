@@ -1,6 +1,5 @@
 from Dataset.CrystalSO3Dataset import CrystalSO3Dataset
-from typing import Dict, Tuple, Optional, Union
-from wandb.sdk.wandb_config import Config
+from typing import Dict, Tuple, Optional
 import json
 from torch.nn.functional import l1_loss, mse_loss
 from Dataset.Normalization import unnormalize
@@ -17,56 +16,6 @@ SEED = 13
 NUM_WORKERS = min(cpu_count() - 1, 16)
 PROJECT = "Elastic Tensor Prediction"
 
-
-def run_setup(validation: bool, radius: float, normalize: bool, batch_size: int, lmax_h: int,
-              max_neighbors: int) -> Tuple[torch.DeviceObjType, DataLoader, DataLoader, int]:
-    """
-    Sets up the environment for training. Sets the seed, device, and completes the dataloaders 
-    and determines the number of atomic features.
-
-    Args:
-        validation: Whether or not this is a validation run
-        raidus: How far to look for connection in the crystal graph in the data
-        normalize: Whether or not to normalize the spherical harmonic coefficients
-        batch_size: How large each batch should be
-        lmax_h: The maximum l of the spherical harmonics in the model.
-        max_neighbors: How many neighbors to include for each atom in the crystal graph.
-
-    Returns:
-        device, train_loader, validation_loader, num_atom_features.
-    """
-    wandb.login()
-    
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    torch.manual_seed(SEED)
-    torch.backends.cudnn.benchmark = True
-
-    print("loading data")
-    train_dataset, validation_dataset = setup_datasets(validation=validation, radius=radius, lmax_h=lmax_h,
-                                                       normalize=normalize, max_neighbors=max_neighbors)
-    num_atom_feats = train_dataset[0].x.shape[-1] 
-
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=NUM_WORKERS,
-        drop_last=False,
-        pin_memory=False,
-        generator=torch.Generator().manual_seed(SEED)
-    )
-
-    validation_loader = DataLoader(
-        validation_dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=NUM_WORKERS,
-        drop_last=False,
-        pin_memory=False
-    )
-    print("loaded data")
-
-    return device, train_loader, validation_loader, num_atom_feats
 
 def setup_datasets(validation: bool, radius: float = 8.0, normalize: bool = True, lmax_h: int = 4,
                    max_neighbors: int = 12) -> Tuple[CrystalSO3Dataset, CrystalSO3Dataset]:
@@ -96,43 +45,6 @@ def setup_datasets(validation: bool, radius: float = 8.0, normalize: bool = True
         atom_init = json.load(atom_init)
     return (CrystalSO3Dataset(train_data, atom_init, lmax_h, radius=radius, max_neighbors=max_neighbors, normalize=normalize), 
             CrystalSO3Dataset(test_data, atom_init, lmax_h, radius=radius, max_neighbors=max_neighbors, normalize=normalize))
-
-def setup_optimizer(config: Union[dict, Config], model: torch.nn.Module) -> optim.Optimizer:
-    """
-    Sets up an optimizer for a model based on the config
-
-    Args:
-        config: The config to pull optimizer info from
-        model: The model to build the optimizer for
-
-    Returns:
-        The optimizer as specified by the config for the model.
-    """
-    if config["optimizer"] == "sgd":
-        optimizer = optim.SGD(model.parameters(), lr=config["learning_rate"], momentum=config["momentum"], weight_decay=config["weight_decay"])
-    elif config["optimizer"] == "adam":
-        optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"])
-    else:
-        raise Exception("Not a legal optimizer")
-    return optimizer
-
-def setup_scheduler(config: Union[dict, Config], optimizer: optim.Optimizer) -> optim.lr_scheduler.MultiStepLR:
-    """
-    Sets up an optimizer scheduler based on the config
-
-    Args:
-        config: The config to pull scheduler information from
-        optimizer: The optimizer to build the scheduler around
-
-    Returns:
-        The scheduler as specified by the config for the optimizer
-    """
-    if "setransformer" == config["model"]:
-        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=config["epochs"], T_mult=1, eta_min=1e-8)
-    else:
-        # Steereable Equivariant
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, gamma=0.1, milestones=[0.8*config["epochs"], 0.9*config["epochs"]])
-    return scheduler
 
 def run_epoch(model: torch.nn.Module, device: torch.DeviceObjType, dataloader: DataLoader, 
               optimizer: Optional[torch.optim.Optimizer], train: bool, normalize: bool) -> Dict[str, float]:
