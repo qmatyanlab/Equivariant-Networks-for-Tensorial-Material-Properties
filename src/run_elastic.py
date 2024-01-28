@@ -141,3 +141,7 @@ class ElasticRunner(Runner):
 if __name__ == "__main__":
     runner = ElasticRunner()
     runner.main()
+    # Save results
+    torch.save(runner.best_model_state_dict, f"{runner.name.replace(' ', '_')}")
+    runner.model.load_state_dict(runner.best_model_state_dict)
+    torch.save(runner.model.graph_nn.state_dict(), f"{runner.name.replace(' ', '_')}_graphnn")
