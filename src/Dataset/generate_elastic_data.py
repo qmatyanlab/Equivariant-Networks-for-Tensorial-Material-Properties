@@ -15,10 +15,10 @@ warnings.filterwarnings("ignore", category=np.ComplexWarning)
 
 np.random.seed(7)
 
-CACHE = Path("./raw_data.json")
-TRAIN = Path("./train")
-VALIDATE = Path("./validate")
-TEST = Path("./test")
+CACHE = Path("./elastic/raw_data.json")
+TRAIN = Path("./elastic/train")
+VALIDATE = Path("./elastic/validate")
+TEST = Path("./elastic/test")
 
 LIMITING_FACTOR = 5000
 

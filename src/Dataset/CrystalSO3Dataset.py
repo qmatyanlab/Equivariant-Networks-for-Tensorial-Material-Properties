@@ -2,10 +2,12 @@ import torch
 import numpy as np
 from torch_geometric.data import Data, Dataset
 from pymatgen.core.structure import Structure
-from typing import Dict, List
+from typing import Dict, List, Optional
 from e3nn.o3 import Irreps, spherical_harmonics
 from torch_scatter import scatter
 from abc import ABCMeta, abstractmethod
+from Normalization import Normalizer
+import json
 
 class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
     """
@@ -15,7 +17,7 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
     """
 
     def __init__(self, molecule_data: List[dict], atom_init: Dict[str, List[float]], lmax: int, 
-                 radius: float = 8.0, max_neighbors: int = 12, normalize: bool = True):
+                 radius: float = 8.0, max_neighbors: int = 12, normalize: bool = True, coef_path: Optional[str] = None):
         """
         Initializes a crystal dataset from a list of molecule data
 
@@ -27,6 +29,7 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
             radius: The furthest distance from an atom to look for edge connections in Angstroms.
             max_neighbors: How many neighbors to include for each atom in the crystal graph.
             normalize: Whether or not to normalize the target 
+            coef_path: Where the stats about the spherical harmonic decomposition can be found.
         """
         super().__init__()
         self.molecule_data = molecule_data
@@ -35,6 +38,8 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
         self.radius = radius
         self.max_neighbors = max_neighbors
         self.normalize = normalize
+        with open(coef_path) as f:
+            self.normalizer = Normalizer(json.load(f), "cpu")
 
     def len(self) -> int:
         return len(self.molecule_data)

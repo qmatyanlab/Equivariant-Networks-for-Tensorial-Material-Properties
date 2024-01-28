@@ -4,8 +4,6 @@ from functools import lru_cache
 import torch
 from torch_geometric.data import Data
 from typing import Tuple
-from .Normalization import Normalizer
-import json
 
 class ElasticDataset(CrystalSO3Dataset):
     """
@@ -13,9 +11,7 @@ class ElasticDataset(CrystalSO3Dataset):
     """
     def __init__(self, molecule_data: List[dict], atom_init: Dict[str, List[float]], lmax: int, 
                  radius: float = 8, max_neighbors: int = 12, normalize: bool = True):
-        super().__init__(molecule_data, atom_init, lmax, radius, max_neighbors, normalize) 
-        with open("Dataset/elastic/coef_stats.json") as f:
-            self.normalizer = Normalizer(json.load(f), "cpu")
+        super().__init__(molecule_data, atom_init, lmax, radius, max_neighbors, normalize, "Dataset/elastic/coef_stats.json") 
 
     @lru_cache(None)
     def get(self, idx: int) -> Data:

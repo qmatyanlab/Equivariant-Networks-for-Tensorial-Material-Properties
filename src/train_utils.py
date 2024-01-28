@@ -2,9 +2,8 @@ from Dataset.CrystalSO3Dataset import CrystalSO3Dataset
 from typing import Dict, Tuple, Optional
 import json
 from torch.nn.functional import l1_loss, mse_loss
-from Dataset.Normalization import unnormalize
 import torch
-from RecombineCoefficients import sphvectors2voigt
+from RecombineElasticCoefficients import sphvectors2voigt
 from tqdm import tqdm
 from torch_geometric.loader import DataLoader
 from multiprocessing import cpu_count

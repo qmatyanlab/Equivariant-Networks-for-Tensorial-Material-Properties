@@ -1,6 +1,5 @@
 from tqdm import tqdm
 from mp_api.client import MPRester
-from mp_api.client.core import MAPIClientSettings
 import json
 from pathlib import Path
 from sklearn.model_selection import train_test_split
@@ -16,10 +15,10 @@ warnings.filterwarnings("ignore", category=np.ComplexWarning)
 
 np.random.seed(7)
 
-CACHE = Path("./raw_data.json")
-TRAIN = Path("./train")
-VALIDATE = Path("./validate")
-TEST = Path("./test")
+CACHE = Path("./dielectric/raw_data.json")
+TRAIN = Path("./dielectric/train")
+VALIDATE = Path("./dielectric/validate")
+TEST = Path("./dielectric/test")
 
 LIMITING_FACTOR = 5000
 
