@@ -9,6 +9,7 @@ from typing import List, Tuple
 from RecombineElasticCoefficients import sphvectors2voigt
 from utils import get_unique_components
 from e3nn.o3 import Irreps
+from pathlib import Path
 
 class ElasticRunner(Runner):
     @property
@@ -142,6 +143,7 @@ if __name__ == "__main__":
     runner = ElasticRunner()
     runner.main()
     # Save results
-    torch.save(runner.best_model_state_dict, f"{runner.name.replace(' ', '_')}")
+    Path("trained_models").mkdir(exist_ok=True)
+    torch.save(runner.best_model_state_dict, f"trained_models/{runner.name.replace(' ', '_')}")
     runner.model.load_state_dict(runner.best_model_state_dict)
-    torch.save(runner.model.graph_nn.state_dict(), f"{runner.name.replace(' ', '_')}_graphnn")
+    torch.save(runner.model.graph_nn.state_dict(), f"trained_models/{runner.name.replace(' ', '_')}_graphnn")
