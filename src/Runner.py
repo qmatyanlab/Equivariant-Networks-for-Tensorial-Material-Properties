@@ -88,7 +88,7 @@ class Runner(ABC):
         print("loaded data")
 
         print("loading model")
-        self.setup_model()
+        self.setup_model(self.config, num_atom_feats)
         if args.graph_weights_from_pretrained:
             with open(args.graph_weights_from_pretrained) as f:
                 self.model.graph_nn.load_state_dict(json.load(f))
@@ -106,6 +106,9 @@ class Runner(ABC):
             self.normalizer = Normalizer(json.load(f), self.device)
 
         self.name = args.name
+        self.best_logs = None
+        self.best_epoch = None
+        self.best_model_state_dict = None
 
     def main(self):
         """
@@ -185,12 +188,13 @@ class Runner(ABC):
         """
         raise NotImplementedError("record_best must be set up in subclasses.")
     
-    @abstractmethod
     def log_best(self):
         """
         Logs best results to wandb
         """
-        raise NotImplementedError("log_best must be set up in subclasses")
+        for k, v in self.best_logs.items():
+            wandb.summary[f"Best {k}"] = v
+        wandb.summary["Best Epoch"] = self.best_epoch
     
     @abstractmethod
     @property
