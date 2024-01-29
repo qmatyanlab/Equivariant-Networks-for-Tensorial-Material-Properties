@@ -1,6 +1,6 @@
 import torch
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple, List, Literal
+from typing import Tuple, List, Literal
 from e3nn.o3 import Irreps
 import torch
 from multiprocessing import cpu_count
@@ -8,7 +8,7 @@ import wandb
 import torch.optim as optim
 from torch_geometric.loader import DataLoader
 from Dataset.CrystalSO3Dataset import CrystalSO3Dataset
-from Model import SEGNN, SETransformer, SEMPNN, SEConv
+from Model import SETransformer, SEMPNN, SEConv
 import warnings
 from tqdm import tqdm
 from argparse import ArgumentParser
@@ -29,6 +29,7 @@ class Runner(ABC):
         Initializes a runner with a given config. Takes arguments from commandline.
 
         Args:
+            name: The name of the run for wandb
             config: The config to set up the model and run training with
             validation: Whether or not to do a validation run.
             graph_weights_from_pretrained: Graph weights to load the model with.
@@ -56,7 +57,7 @@ class Runner(ABC):
         }
 
         if args.pretrained is None and not args.finetunable:
-            warnings.warn("Can't restrict finetuning if not providing a pretrained model.")
+            warnings.warn("Can't restrict finetuning if not providing a pretrained model, defaulting to training graph_nn.")
         
         wandb.login()
     
@@ -259,7 +260,7 @@ class Runner(ABC):
 
     def setup_sempgnn(self, num_atom_feats: int, lmax_h: int, hidden_features: int, num_graph_layers: int, 
                     num_prepool_layers: int, num_postpool_layers: int, output_irreps_lst: List[Irreps],
-                    norm: Literal["none", "batch"], pooling: Literal["mean", "add", "max"]) -> torch.nn.Module:
+                    norm: Literal["none", "batch"], pooling: Literal["mean", "add", "max"]) -> SEMPNN:
         """
         Sets up a SEMPN model based on the parameters provided.
 
@@ -276,7 +277,6 @@ class Runner(ABC):
 
         Returns the specified SEMPNN model
         """
-        from Model.SEMPNN import SEMPNN
         (input_irreps, 
         edge_attr_irreps, 
         node_attr_irreps, 
@@ -298,7 +298,7 @@ class Runner(ABC):
     def setup_seconv(self, num_atom_feats: int, lmax_h: int, hidden_features: int, num_graph_layers: int, 
                     num_prepool_layers: int, num_postpool_layers: int, 
                     conv_type: Literal["linear", "nonlinear"], output_irreps_lst: List[Irreps],
-                    norm: Literal["none", "batch"], pooling: Literal["mean", "add", "max"]) -> torch.nn.Module:
+                    norm: Literal["none", "batch"], pooling: Literal["mean", "add", "max"]) -> SEConv:
         """
         Sets up a SEConv model based on the parameters provided.
 
@@ -316,7 +316,6 @@ class Runner(ABC):
 
         Returns the specified SEConv model.
         """
-        from Model.SEConvNN import SEConv
         (input_irreps, 
         edge_attr_irreps, 
         node_attr_irreps, 
@@ -338,7 +337,7 @@ class Runner(ABC):
 
     def setup_setransformer(self, num_atom_feats: int, lmax_h: int, hidden_features: int, num_graph_layers: int, 
                     num_prepool_layers: int, num_postpool_layers: int, output_irreps_lst: List[Irreps],
-                    norm: Literal["none", "batch"], max_radius: float, pooling: Literal["mean", "add", "max"]) -> torch.nn.Module:
+                    norm: Literal["none", "batch"], max_radius: float, pooling: Literal["mean", "add", "max"]) -> SETransformer:
         """
         Sets up a SETransformer model based on the parameters provided.
 
@@ -356,7 +355,6 @@ class Runner(ABC):
 
         Returns the SETransformer model as specified
         """
-        from Model.SETransformer import SETransformer
         (input_irreps, 
         edge_attr_irreps, 
         node_attr_irreps, 
