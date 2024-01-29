@@ -6,10 +6,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 from typing import Union, List
 import warnings
-if __name__ == "__main__":
-    from Dataset.elastic_utils import voigt2realsphvectors
-else:
-    from .elastic_utils import voigt2realsphvectors
+from elastic_utils import voigt2realsphvectors
 import warnings
 warnings.filterwarnings("ignore", category=np.ComplexWarning)
 
@@ -138,7 +135,7 @@ def collect_stats(data: List[dict]):
         "asymmetric_mean": asymmetric_mean.tolist(),
     }
 
-    with open("coef_stats.json", "wt+") as f:
+    with open("./elastic/coef_stats.json", "wt+") as f:
         json.dump(coef_stats, f, indent=2)
 
 def save_data(data: List[dict], dest: Union[str, Path]):
@@ -191,6 +188,8 @@ def get_by_ids(data: List[dict]):
     return train, validate, test
 
 def main():
+    Path("elastic").mkdir(exist_ok=True)
+
     if CACHE.exists():
         print("Using cached data.")
         with CACHE.open("r") as f:

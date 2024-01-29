@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 from e3nn.o3 import Irreps, spherical_harmonics
 from torch_scatter import scatter
 from abc import ABCMeta, abstractmethod
-from Normalization import Normalizer
+from .Normalization import Normalizer
 import json
 
 class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):

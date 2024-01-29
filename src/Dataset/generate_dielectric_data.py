@@ -6,10 +6,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 from typing import Union, List
 import warnings
-if __name__ == "__main__":
-    from dielectric_utils import cart2realsphvec
-else:
-    from .dielectric_utils import cart2realsphvec
+from dielectric_utils import cart2realsphvec
 import warnings
 warnings.filterwarnings("ignore", category=np.ComplexWarning)
 
@@ -101,7 +98,7 @@ def collect_stats(data: List[dict]):
         "sph_mean": sph_mean.tolist(),
     }
 
-    with open("coef_stats.json", "wt+") as f:
+    with open("./dielectric/coef_stats.json", "wt+") as f:
         json.dump(coef_stats, f, indent=2)
 
 def save_data(data: List[dict], dest: Union[str, Path]):
@@ -153,6 +150,8 @@ def get_by_ids(data: List[dict]):
     return train, validate, test
 
 def main():
+    Path("dielectric").mkdir(exist_ok=True)
+
     if CACHE.exists():
         print("Using cached data.")
         with CACHE.open("r") as f:

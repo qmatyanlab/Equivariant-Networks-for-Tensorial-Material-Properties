@@ -54,7 +54,7 @@ class Runner(ABC):
             "finetunable": args.finetunable
         }
 
-        if args.graph_weights_from_pretrained is None and not args.finetunable:
+        if args.pretrained is None and not args.finetunable:
             warnings.warn("Can't restrict finetuning if not providing a pretrained model.")
         
         wandb.login()
@@ -89,8 +89,8 @@ class Runner(ABC):
 
         print("loading model")
         self.setup_model(self.config, num_atom_feats)
-        if args.graph_weights_from_pretrained:
-            with open(args.graph_weights_from_pretrained) as f:
+        if args.pretrained:
+            with open(args.pretrained) as f:
                 self.model.graph_nn.load_state_dict(json.load(f))
             if not args.finetunable:
                 for param in self.model.graph_nn.parameters:
@@ -143,15 +143,15 @@ class Runner(ABC):
                 train_data.extend(json.load(validation_data))
                 with open(f"{self.default_data_path}/test/data.json") as test_data:
                     test_data = json.load(test_data)
-        with open(f"{self.default_data_path}/atom_init.json") as atom_init:
+        with open(f"./Dataset/atom_init.json") as atom_init:
             atom_init = json.load(atom_init)
         return (self.dataset_class(train_data, atom_init, self.config["lmax_h"], radius=self.config["radius"], 
                                    max_neighbors=self.config["max_neighbors"], normalize=self.config["normalize"]), 
                 self.dataset_class(test_data, atom_init, self.config["lmax_h"], radius=self.config["radius"], 
                                    max_neighbors=self.config["max_neighbors"], normalize=self.config["normalize"]))
 
-    @abstractmethod
     @property
+    @abstractmethod
     def default_data_path(self) -> str:
         """
         The location where all the data for this runner is stored. i.e Dataset/elastic
@@ -159,7 +159,7 @@ class Runner(ABC):
         raise NotImplementedError("Set default data path in subclasses.")
     
     @abstractmethod
-    def dataset_class(data: List[dict], atom_init: dict, lmax_h: int, radius: float, max_neighbors: int, normalize: bool) -> CrystalSO3Dataset:
+    def dataset_class(self, data: List[dict], atom_init: dict, lmax_h: int, radius: float, max_neighbors: int, normalize: bool) -> CrystalSO3Dataset:
         """
         Abstract factory for the dataset class. Takes in same arguments as a CrystalSO3Dataset and applies
         to a specific class
@@ -196,15 +196,15 @@ class Runner(ABC):
             wandb.summary[f"Best {k}"] = v
         wandb.summary["Best Epoch"] = self.best_epoch
     
-    @abstractmethod
     @property
+    @abstractmethod
     def output_irreps_lst(self) -> List[Irreps]:
         """
         Defines the model output
         """
         raise NotImplementedError("Must choose output in subclasses")
     
-    def setup_model(self, config: dict, num_atom_feats: int) -> SEGNN:
+    def setup_model(self, config: dict, num_atom_feats: int):
         """
         Sets up the models to be run with the right output style
 

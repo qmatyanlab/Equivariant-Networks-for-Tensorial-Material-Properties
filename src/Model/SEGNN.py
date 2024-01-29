@@ -36,6 +36,8 @@ class SEGNN(nn.Module, metaclass=ABCMeta):
         self.additional_message_irreps = additional_message_irreps
         self.pooling = pooling
 
+        print(input_irreps, hidden_irreps, node_attr_irreps)
+
         embedding_layer = O3TensorProduct(
             input_irreps, hidden_irreps, node_attr_irreps
         )

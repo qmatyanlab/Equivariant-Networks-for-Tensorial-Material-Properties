@@ -16,8 +16,8 @@ class ElasticRunner(Runner):
     def default_data_path(self):
         return "Dataset/elastic"
     
-    def dataset_class(data: List[dict], atom_init: dict, lmax_h: int, radius: float, max_neighbors: int, normalize: bool) -> ElasticDataset:
-        return ElasticDataset(atom_init, lmax_h, radius, max_neighbors, normalize)
+    def dataset_class(self, data: List[dict], atom_init: dict, lmax_h: int, radius: float, max_neighbors: int, normalize: bool) -> ElasticDataset:
+        return ElasticDataset(data, atom_init, lmax_h, radius, max_neighbors, normalize)
 
     def run_epoch(self, dataloader: DataLoader, train: bool):
         """
