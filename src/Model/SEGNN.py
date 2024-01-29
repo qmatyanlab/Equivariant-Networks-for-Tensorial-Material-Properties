@@ -2,7 +2,7 @@ import torch.nn as nn
 from e3nn.o3 import Irreps
 from typing import List, Literal
 from abc import ABCMeta, abstractmethod
-from Model.PooledGraphNN import PooledGraphNN
+from .PooledGraphNN import PooledGraphNN
 
 from .Layers.SO3BuildingBlocks import O3TensorProduct, O3TensorProductSwishGate
 
@@ -35,8 +35,6 @@ class SEGNN(nn.Module, metaclass=ABCMeta):
         self.norm = norm
         self.additional_message_irreps = additional_message_irreps
         self.pooling = pooling
-
-        print(input_irreps, hidden_irreps, node_attr_irreps)
 
         embedding_layer = O3TensorProduct(
             input_irreps, hidden_irreps, node_attr_irreps

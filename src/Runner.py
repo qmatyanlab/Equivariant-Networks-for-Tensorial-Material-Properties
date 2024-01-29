@@ -13,6 +13,7 @@ import warnings
 from tqdm import tqdm
 from argparse import ArgumentParser
 import json
+from Model.BalancedIrreps import BalancedIrreps
 from Dataset.Normalization import Normalizer
 
 SEED = 13
@@ -215,34 +216,33 @@ class Runner(ABC):
         Returns:
             The requested model.
         """
-        # Setup specific model
         if "segnn" == config["model"]:
-            self.model = self.setup_sempnn(num_atom_feats=num_atom_feats, lmax_h=config["lmax_h"], 
-                                hidden_irreps=config["hidden_irreps"], num_graph_layers=config["num_graph_layers"],
+            self.model = self.setup_sempgnn(num_atom_feats=num_atom_feats, lmax_h=config["lmax_h"], 
+                                hidden_features=config["hidden_features"], num_graph_layers=config["num_graph_layers"],
                                 num_prepool_layers=config["num_prepool_layers"], num_postpool_layers=config["num_postpool_layers"],
                                 output_irreps_lst=self.output_irreps_lst, norm=config["layer_norm"], pooling=config["pooling"])
         elif "seconv" in config["model"]:
-            self.model = self.setup_seconv(num_atom_feats=num_atom_feats, lmax_h=config["lmax_h"], hidden_irreps=config["hidden_irreps"], 
+            self.model = self.setup_seconv(num_atom_feats=num_atom_feats, lmax_h=config["lmax_h"], hidden_features=config["hidden_features"], 
                                 num_graph_layers=config["num_graph_layers"], num_prepool_layers=config["num_prepool_layers"], 
                                 num_postpool_layers=config["num_postpool_layers"], conv_type=config["model"][config["model"].rfind("-") + 1:],
                                 output_irreps_lst=self.output_irreps_lst, norm=config["layer_norm"], pooling=config["pooling"])
         elif "setransformer" == config["model"]:
             self.model = self.setup_setransformer(num_atom_feats=num_atom_feats, lmax_h=config["lmax_h"], 
-                                hidden_irreps=config["hidden_irreps"], num_graph_layers=config["num_graph_layers"],
+                                hidden_features=config["hidden_features"], num_graph_layers=config["num_graph_layers"],
                                 num_prepool_layers=config["num_prepool_layers"], num_postpool_layers=config["num_postpool_layers"],
                                 output_irreps_lst=self.output_irreps_lst, norm=config["layer_norm"], max_radius=config["radius"], 
                                 pooling=config["pooling"])
         else:
             raise Exception("No such model of that type")
             
-    def setup_irreps(self, num_atom_feats: int, lmax_h: int, hidden_irreps: str) -> Tuple[Irreps, Irreps, Irreps, Irreps, Irreps, Irreps, Irreps]:
+    def setup_irreps(self, num_atom_feats: int, lmax_h: int, hidden_features: int) -> Tuple[Irreps, Irreps, Irreps, Irreps, Irreps, Irreps, Irreps]:
         """
         Sets up the irreps for the model input, hidden layers, and output
 
         Args:
             num_atom_feats: The number of atom scalar features provided.
             lmax_h: The maximum l for the hidden layers
-            hidden_irreps: The hidden irreps string
+            hidden_features: The number of hidden features
 
         Returns all the required irreps
         """
@@ -254,26 +254,25 @@ class Runner(ABC):
         # Distance is a singular scalar
         additional_message_irreps = Irreps("1x0e")
         # Create hidden irreps
-        hidden_irreps = Irreps(hidden_irreps)
+        hidden_irreps = BalancedIrreps(lmax_h, hidden_features)
         return input_irreps, edge_attr_irreps, node_attr_irreps, additional_message_irreps, hidden_irreps
 
-    def setup_sempnn(self, num_atom_feats: int, lmax_h: int, hidden_irreps: str, num_graph_layers: int, 
+    def setup_sempgnn(self, num_atom_feats: int, lmax_h: int, hidden_features: int, num_graph_layers: int, 
                     num_prepool_layers: int, num_postpool_layers: int, output_irreps_lst: List[Irreps],
-                    norm: Literal["none", "batch"], pooling: Literal["mean", "add", "max"]) -> SEMPNN:
+                    norm: Literal["none", "batch"], pooling: Literal["mean", "add", "max"]) -> torch.nn.Module:
         """
-        Sets up a SEMPNN model based on the parameters provided.
+        Sets up a SEMPN model based on the parameters provided.
 
         Args:
             num_atom_feats: How many atomic features will be provided
             lmax_h: The maximum l for the hidden layer
-            hidden_irreps: The hidden irreps string
+            hidden_features: How many features in the hidden layers
             num_graph_layers: How many hidden layers of graph interaction
             num_prepool_layers: How many linear layers on just node values
             num_postpool_layers: How many layers before final output after pooling
             output_irreps_lst: The list of outputs of the model
             norm: The layer normalization the model may employ
             pooling: How to pool the nodes together
-            subspace_type: How to allocate the irreps used in the hidden layers.
 
         Returns the specified SEMPNN model
         """
@@ -282,7 +281,7 @@ class Runner(ABC):
         edge_attr_irreps, 
         node_attr_irreps, 
         additional_message_irreps, 
-        hidden_irreps) = self.setup_irreps(num_atom_feats, lmax_h, hidden_irreps)
+        hidden_irreps) = self.setup_irreps(num_atom_feats, lmax_h, hidden_features)
 
         return SEMPNN(input_irreps,
             hidden_irreps,
@@ -296,17 +295,17 @@ class Runner(ABC):
             norm=norm,
             pooling=pooling)
 
-    def setup_seconv(self, num_atom_feats: int, lmax_h: int, hidden_irreps: str, num_graph_layers: int, 
+    def setup_seconv(self, num_atom_feats: int, lmax_h: int, hidden_features: int, num_graph_layers: int, 
                     num_prepool_layers: int, num_postpool_layers: int, 
                     conv_type: Literal["linear", "nonlinear"], output_irreps_lst: List[Irreps],
-                    norm: Literal["none", "batch"], pooling: Literal["mean", "add", "max"]) -> SEConv:
+                    norm: Literal["none", "batch"], pooling: Literal["mean", "add", "max"]) -> torch.nn.Module:
         """
         Sets up a SEConv model based on the parameters provided.
 
         Args:
             num_atom_feats: How many atomic features will be provided
             lmax_h: The maximum l for the hidden layer
-            hidden_irreps: How many features in the hidden layers
+            hidden_features: How many features in the hidden layers
             num_graph_layers: How many hidden layers of graph interaction
             num_prepool_layers: How many linear layers on just node values
             num_postpool_layers: How many layers before final output after pooling
@@ -314,7 +313,6 @@ class Runner(ABC):
             output_irreps_lst: The list of outputs of the model
             norm: The layer normalization the model may employ
             pooling: How to pool the nodes together
-            subspace_type: How to allocate the irreps used in the hidden layers.
 
         Returns the specified SEConv model.
         """
@@ -323,7 +321,7 @@ class Runner(ABC):
         edge_attr_irreps, 
         node_attr_irreps, 
         additional_message_irreps, 
-        hidden_irreps) = self.setup_irreps(num_atom_feats, lmax_h, hidden_irreps)
+        hidden_irreps) = self.setup_irreps(num_atom_feats, lmax_h, hidden_features)
 
         return SEConv(input_irreps,
             hidden_irreps,
@@ -338,16 +336,16 @@ class Runner(ABC):
             norm=norm,
             pooling=pooling)
 
-    def setup_setransformer(self, num_atom_feats: int, lmax_h: int, hidden_irreps: str, num_graph_layers: int, 
+    def setup_setransformer(self, num_atom_feats: int, lmax_h: int, hidden_features: int, num_graph_layers: int, 
                     num_prepool_layers: int, num_postpool_layers: int, output_irreps_lst: List[Irreps],
-                    norm: Literal["none", "batch"], max_radius: float, pooling: Literal["mean", "add", "max"]) -> SETransformer:
+                    norm: Literal["none", "batch"], max_radius: float, pooling: Literal["mean", "add", "max"]) -> torch.nn.Module:
         """
         Sets up a SETransformer model based on the parameters provided.
 
         Args:
             num_atom_feats: How many atomic features will be provided
             lmax_h: The maximum l for the hidden layer
-            hidden_irreps: How many features in the hidden layers
+            hidden_features: How many features in the hidden layers
             num_graph_layers: How many hidden layers of graph interaction
             num_prepool_layers: How many linear layers on just node values
             num_postpool_layers: How many layers before final output after pooling
@@ -355,7 +353,6 @@ class Runner(ABC):
             norm: The layer normalization the model may employ
             max_radius: The maximum radius for cutoff function
             pooling: How to pool the nodes together
-            subspace_type: How to allocate the irreps used in the hidden layers.
 
         Returns the SETransformer model as specified
         """
@@ -364,7 +361,7 @@ class Runner(ABC):
         edge_attr_irreps, 
         node_attr_irreps, 
         additional_message_irreps, 
-        hidden_irreps) = self.setup_irreps(num_atom_feats, lmax_h, hidden_irreps)
+        hidden_irreps) = self.setup_irreps(num_atom_feats, lmax_h, hidden_features)
 
         return SETransformer(input_irreps,
             hidden_irreps,

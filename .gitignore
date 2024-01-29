@@ -161,7 +161,7 @@ cython_debug/
 
 # Custom ignore files for APIKEY and dataset
 APIKEY
-src/Dataset/raw_data.json
 src/Dataset/*/*/*.json
+src/Dataset/*/raw_data.json
 wandb/
 src/Dataset/images

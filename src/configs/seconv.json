@@ -1,7 +1,7 @@
 {
     "model": "seconv-nonlinear",
     "lmax_h": 4,
-    "hidden_irreps": "32x0o+32x0e+16x1o+16x1e+4x2o+4x2e+2x3o+2x3e+2x4e",
+    "hidden_features": 512,
     "num_graph_layers": 10,
     "num_prepool_layers": 4,
     "num_postpool_layers": 4,
