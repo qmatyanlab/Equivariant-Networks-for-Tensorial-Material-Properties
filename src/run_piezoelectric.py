@@ -98,12 +98,11 @@ class PiezoelectricRunner(Runner):
         Computes the model's prediction of the voigt tensor and calculates MAE
 
         Args:
-            symm_coefs_pred: The predicted symmetric coefficients that are unnormalize.
-            asymm_coefs_pred: The predicted asymmetric coefficients that are unnormalized.
-            voigt_true: The True voigt tensor
+            sph_coefs_pred: The predicted spherical coeficients that are unnormalized.
+            piezoelectric_true: The True piezoelectric tensor
 
         Returns:
-            The MAE and MSE of the voigt tensor.
+            The MAE and MSE of the piezoelectric tensor.
         """
         assert sph_coefs_pred.shape[-1] == 6, "Did not get proper shape of spherical coefficients."
         piezoelectric_pred = realsphvec2cart(sph_coefs_pred)
