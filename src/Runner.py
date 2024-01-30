@@ -33,7 +33,7 @@ class Runner(ABC):
             config: The config to set up the model and run training with
             validation: Whether or not to do a validation run.
             graph_weights_from_pretrained: Graph weights to load the model with.
-            finetunable: Whether or not to freeze the graph weights from pretrained.
+            lock_weights: Whether or not to freeze the graph weights from pretrained.
         """
         super().__init__()
 
@@ -42,7 +42,7 @@ class Runner(ABC):
         args.add_argument("config", help="The path to the config to run.", type=str)
         args.add_argument("--pretrained", help="The path to the pretrained weights", type=str)
         args.add_argument("--validation", help="If this is a validation run and not a testing run", action="store_true")
-        args.add_argument("--finetunable", help="If the pretrained graph layers should be finetunable", action="store_true")
+        args.add_argument("--lock_weights", help="If the pretrained graph layers should not be retrained", action="store_true")
         args = args.parse_args()
 
         with open(args.config) as f:
@@ -53,10 +53,10 @@ class Runner(ABC):
             "seed": SEED,
             "pretrained": args.pretrained is not None,
             "validation": args.validation,
-            "finetunable": args.finetunable
+            "lock_weights": args.lock_weights
         }
 
-        if args.pretrained is None and not args.finetunable:
+        if args.pretrained is None and args.lock_weights:
             warnings.warn("Can't restrict finetuning if not providing a pretrained model, defaulting to training graph_nn.")
         
         wandb.login()
@@ -94,7 +94,7 @@ class Runner(ABC):
         if args.pretrained:
             with open(args.pretrained) as f:
                 self.model.graph_nn.load_state_dict(json.load(f))
-            if not args.finetunable:
+            if args.lock_weights:
                 for param in self.model.graph_nn.parameters:
                     param.requires_grad = False
         print("loaded model")
