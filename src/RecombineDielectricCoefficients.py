@@ -1,4 +1,5 @@
 import torch
+import warnings
 
 def realsphvec2cart(realsphvec):
     realsph = {}
@@ -51,7 +52,7 @@ def msph2cart(msph):
     x=0
     y=1
     z=2
-    cart = torch.zeros((msph['*s_0^0'].shape[0], 3, 3), dtype=torch.float32, device=msph['*s_0^0'].device)
+    cart = torch.zeros((msph['*s_0^0'].shape[0], 3, 3), dtype=torch.complex64, device=msph['*s_0^0'].device)
 
     cart[:, x, x] = (1/2)*((2/3)*(msph['*s_0^0']-msph['*s_2^0'])+(2/3)**(1/2)*(msph['*s_2^2']+msph['*s_2^-2']))
     cart[:, y, y] = (1/2)*((2/3)*(msph['*s_0^0']-msph['*s_2^0'])-(2/3)**(1/2)*(msph['*s_2^2']+msph['*s_2^-2']))
@@ -59,5 +60,9 @@ def msph2cart(msph):
     cart[:, x, z] = cart[:, z, x] = (1/2)*((2/3)**(1/2))*(msph['*s_2^-1']-msph['*s_2^1'])
     cart[:, y, z] = cart[:, z, y] = 1j*(1/2)*(2/3)**(1/2)*(msph['*s_2^-1']+msph['*s_2^1'])
     cart[:, x, y] = cart[:, y, x] = 1j*(1/2)*(2/3)**(1/2)*(msph['*s_2^-2']-msph['*s_2^2'])
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        cart = cart.float()
 
     return cart
