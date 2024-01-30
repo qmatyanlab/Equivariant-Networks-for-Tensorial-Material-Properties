@@ -169,7 +169,7 @@ class Runner(ABC):
         raise NotImplementedError("Set up which dataset class you want to use in a subclass")
 
     @abstractmethod
-    def run_epoch(self, dataloader: DataLoader, train: bool):
+    def run_epoch(self, dataloader: DataLoader, train: bool) -> dict:
         """
         Runs a single epoch 
 

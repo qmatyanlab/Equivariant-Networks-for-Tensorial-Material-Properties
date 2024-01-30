@@ -1,7 +1,7 @@
 import torch
 import warnings
 
-def sphvectors2voigt(asym: torch.Tensor, sym: torch.Tensor) -> torch.Tensor:
+def realsphvectors2voigt(asym: torch.Tensor, sym: torch.Tensor) -> torch.Tensor:
     """
     Recombines the spherical harmonic coefficients into a Voigt tensor
 

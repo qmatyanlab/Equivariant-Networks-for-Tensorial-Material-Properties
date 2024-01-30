@@ -2,7 +2,7 @@
     "model": "segnn",
     "lmax_h": 4,
     "hidden_features": 128,
-    "num_graph_layers": 10,
+    "num_graph_layers": 5,
     "num_prepool_layers": 4,
     "num_postpool_layers": 4,
     "learning_rate": 5e-4,

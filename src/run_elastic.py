@@ -5,21 +5,21 @@ from torch.nn.functional import l1_loss, mse_loss
 import torch
 from contextlib import nullcontext
 from tqdm import tqdm
-from typing import List, Tuple
-from RecombineElasticCoefficients import sphvectors2voigt
+from typing import List, Tuple, Dict
+from RecombineElasticCoefficients import realsphvectors2voigt
 from utils import get_unique_components
 from e3nn.o3 import Irreps
 from pathlib import Path
 
 class ElasticRunner(Runner):
     @property
-    def default_data_path(self):
+    def default_data_path(self) -> str:
         return "Dataset/elastic"
     
     def dataset_class(self, data: List[dict], atom_init: dict, lmax_h: int, radius: float, max_neighbors: int, normalize: bool) -> ElasticDataset:
         return ElasticDataset(data, atom_init, lmax_h, radius, max_neighbors, normalize)
 
-    def run_epoch(self, dataloader: DataLoader, train: bool):
+    def run_epoch(self, dataloader: DataLoader, train: bool) -> Dict[str, int]:
         """
         Runs an epoch on the model using the dataloader
 
@@ -88,7 +88,7 @@ class ElasticRunner(Runner):
             f"{location}/Voigt RMSE": (voigt_total_mse / num_batches)**(1/2)
         }
     
-    def unnormalize(self, symmetric_coefs, asymmetric_coefs):
+    def unnormalize(self, symmetric_coefs: torch.Tensor, asymmetric_coefs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Unnormalizes the symmetric and asymmetric coefs.
 
@@ -119,7 +119,7 @@ class ElasticRunner(Runner):
         """
         if symm_coefs_pred.shape[-1] != 15 or asymm_coefs_pred.shape[-1] != 6:
             raise Exception("Did not get proper symmetric or asymmetric coefficients.")
-        voigt_pred = sphvectors2voigt(asymm_coefs_pred, symm_coefs_pred)
+        voigt_pred = realsphvectors2voigt(asymm_coefs_pred, symm_coefs_pred)
         # Only need unique components from tensor
         voigt_pred_components = get_unique_components(voigt_pred)
         voigt_true_components = get_unique_components(voigt_true)
@@ -136,7 +136,7 @@ class ElasticRunner(Runner):
             self.best_model_state_dict = self.model.state_dict()
     
     @property
-    def output_irreps_lst(self):
+    def output_irreps_lst(self) -> List[Irreps]:
         return [Irreps("1x0e + 1x2e + 1x4e"), Irreps("1x0e + 1x2e")]
 
 if __name__ == "__main__":
