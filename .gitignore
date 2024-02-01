@@ -165,3 +165,4 @@ src/Dataset/*/*/*.json
 src/Dataset/*/raw_data.json
 wandb/
 src/Dataset/images
+src/trained_models

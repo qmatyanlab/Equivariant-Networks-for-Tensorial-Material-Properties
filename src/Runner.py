@@ -127,7 +127,7 @@ class Runner(ABC):
                 wandb.log(logs)
                 self.scheduler.step()
                 self.record_best(epoch, logs)
-        self.log_best()
+            self.log_best()
 
     def setup_datasets(self) -> Tuple[CrystalSO3Dataset, CrystalSO3Dataset]:
         """
@@ -195,8 +195,8 @@ class Runner(ABC):
         Logs best results to wandb
         """
         for k, v in self.best_logs.items():
-            wandb.summary[f"Best {k}"] = v
-        wandb.summary["Best Epoch"] = self.best_epoch
+            wandb.run.summary[f"Best {k}"] = v
+        wandb.run.summary["Best Epoch"] = self.best_epoch
     
     @property
     @abstractmethod
