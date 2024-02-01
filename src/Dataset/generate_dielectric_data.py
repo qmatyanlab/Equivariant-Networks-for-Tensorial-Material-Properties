@@ -74,6 +74,20 @@ def compute_spherical_harmonic_coefficients(data: List[dict]):
         sph_coefs = sph_coefs.astype(float)
         d["sph_coefs"] = sph_coefs
 
+def prune_outliers(data: List[dict]):
+    """
+    Prunes any spherical harmonics which seem to be extremely far outside the norm
+
+    Args:
+        data: The data to prune extreme spherical harmonics from
+
+    Returns the data with all the removed outliers
+    """
+    new_data = []
+    for d in tqdm(data, "Pruning Outliers"):
+        if np.all(np.abs(d["sph_coefs"]) < LIMITING_FACTOR):
+            new_data.append(d)
+    return new_data
 
 def collect_stats(data: List[dict]):
     """
@@ -165,6 +179,7 @@ def main():
 
     compute_spherical_harmonic_coefficients(data)
 
+    data = prune_outliers(data)
 
     print(f"Number of total usable datapoints: {len(data)}")
 
