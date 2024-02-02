@@ -92,10 +92,11 @@ class Runner(ABC):
         print("loading model")
         self.setup_model(self.config, num_atom_feats)
         if args.pretrained:
-            with open(args.pretrained) as f:
-                self.model.graph_nn.load_state_dict(json.load(f))
+            print("Loading pretrained weights")
+            self.model.graph_nn.load_state_dict(torch.load(args.pretrained))
             if args.lock_weights:
-                for param in self.model.graph_nn.parameters:
+                print("Locking weights")
+                for param in self.model.graph_nn.parameters():
                     param.requires_grad = False
         print("loaded model")
 
@@ -195,8 +196,8 @@ class Runner(ABC):
         Logs best results to wandb
         """
         for k, v in self.best_logs.items():
-            wandb.run.summary[f"Best {k}"] = v
-        wandb.run.summary["Best Epoch"] = self.best_epoch
+            wandb.run.summary[f"Best/{k}"] = v
+        wandb.run.summary["Best/Epoch"] = self.best_epoch
     
     @property
     @abstractmethod
