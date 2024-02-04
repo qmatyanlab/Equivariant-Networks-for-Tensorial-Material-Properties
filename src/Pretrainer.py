@@ -84,6 +84,9 @@ class Pretrainer(Runner, metaclass=ABCMeta):
                 wandb.log(logs)
                 self.scheduler.step()
                 self.record_best(epoch, logs)
+                if epoch - self.best_epoch  > (1/8) * self.config["epochs"]:
+                    # Early stopping if it doesn't improve after 1/8 of the number of epochs
+                    break
             self.log_best()
 
 
