@@ -35,8 +35,6 @@ class Runner(ABC):
             graph_weights_from_pretrained: Graph weights to load the model with.
             lock_weights: Whether or not to freeze the graph weights from pretrained.
         """
-        super().__init__()
-
         args = ArgumentParser()
         args.add_argument("name", help="The name of the run", type=str)
         args.add_argument("config", help="The path to the config to run.", type=str)
@@ -395,5 +393,4 @@ class Runner(ABC):
         if "setransformer" == self.config["model"]:
             self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0=self.config["epochs"], T_mult=1, eta_min=1e-8)
         else:
-            # Steereable Equivariant
             self.scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, gamma=0.1, milestones=[0.8*self.config["epochs"], 0.9*self.config["epochs"]])

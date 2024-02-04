@@ -145,5 +145,3 @@ if __name__ == "__main__":
     # Save results
     Path("trained_models").mkdir(exist_ok=True)
     torch.save(runner.best_model_state_dict, f"trained_models/{runner.name.replace(' ', '_')}")
-    runner.model.load_state_dict(runner.best_model_state_dict)
-    torch.save(runner.model.graph_nn.state_dict(), f"trained_models/{runner.name.replace(' ', '_')}_graphnn")

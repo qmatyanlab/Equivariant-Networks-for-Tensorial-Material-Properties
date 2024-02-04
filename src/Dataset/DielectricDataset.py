@@ -3,7 +3,6 @@ from .CrystalSO3Dataset import CrystalSO3Dataset
 from functools import lru_cache
 import torch
 from torch_geometric.data import Data
-from typing import Tuple
 
 class DielectricDataset(CrystalSO3Dataset):
     """
@@ -25,7 +24,7 @@ class DielectricDataset(CrystalSO3Dataset):
         return Data(x=x, node_attr=node_attr, edge_index=edge_index, edge_attr=edge_attr, edge_dis=edge_dis, 
                     pos=pos, r_ij=r_ij, sph_coefs=sph_coefs, dielectric_tensor=dielectric_tensor)
     
-    def _get_coefs(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _get_coefs(self, idx: int) -> torch.Tensor:
         """
         Gets the coefficients from the certain index in their combined and normalized form
 
