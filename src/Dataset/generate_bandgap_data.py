@@ -6,7 +6,6 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 from typing import Union, List
 import warnings
-import warnings
 warnings.filterwarnings("ignore", category=np.ComplexWarning)
 
 np.random.seed(7)
@@ -29,7 +28,7 @@ def gather_data(mpr: MPRester):
         if mat.structure is not None and mat.band_gap is not None:
             data.append({
                 "material_id": mat.material_id.string,
-                "material": mat.structure,
+                "material": mat.structure.as_dict(),
                 "band_gap": mat.band_gap
             })
     return data

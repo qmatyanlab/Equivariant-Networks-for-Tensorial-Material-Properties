@@ -61,8 +61,8 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
         edge_dis = torch.norm(r_ij, dim=-1, keepdim=True)
         # Construct edge attributes and node attributes from relative directions. Note change in order to match real
         # spherical harmonics.
-        edge_attr = spherical_harmonics(self.l, r_ij[:, [1, 2, 0]], normalize=True, normalization="component")
-        node_attr = scatter(edge_attr, edge_index[1], dim=0, reduce="mean")
+        edge_attr = spherical_harmonics(self.l, r_ij[:, [1, 2, 0]], normalize=True, normalization="integral")
+        node_attr = spherical_harmonics(self.l, pos[:, [1, 2, 0]], normalize=True, normalization="integral")
         # Form graph
         return x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij
     
@@ -74,13 +74,18 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
         sink = []
         displacements = []
         for i, nbr in enumerate(all_nbrs):
-            # Pulls out the index of the neighbor site
-            destinations = [x.index for x in nbr]
-            source.extend([i] * len(destinations))
-            sink.extend(destinations)
-            # Compute displacement
-            displacements.extend([torch.tensor(x.coords, dtype=torch.float32) - pos[i] for x in nbr])
+            if len(nbr) == 0:
+                # Atom is connected to nothing, so connect to self
+                source.append(i)
+                sink.append(i)
+                displacements.append(torch.tensor([0,0,0], dtype=torch.float32))
+            else:
+                # Pulls out the index of the neighbor site
+                destinations = [x.index for x in nbr]
+                source.extend([i] * len(destinations))
+                sink.extend(destinations)
+                # Compute displacement
+                displacements.extend([torch.tensor(x.coords, dtype=torch.float32) - pos[i] for x in nbr])
         edge_index = np.vstack((source, sink))
         displacements = torch.vstack(displacements)
         return torch.tensor(edge_index, dtype=torch.int64), displacements
-    
