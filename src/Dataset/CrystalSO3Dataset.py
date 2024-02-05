@@ -59,10 +59,9 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
         edge_index, r_ij = self._compute_neighbors(struc, pos)
         # Edge distance to preserve that information as spherical harmonics ignore distance.
         edge_dis = torch.norm(r_ij, dim=-1, keepdim=True)
-        # Construct edge attributes and node attributes from relative directions. Note change in order to match real
-        # spherical harmonics.
-        edge_attr = spherical_harmonics(self.l, r_ij[:, [1, 2, 0]], normalize=True, normalization="integral")
-        node_attr = spherical_harmonics(self.l, pos[:, [1, 2, 0]], normalize=True, normalization="integral")
+        # Construct edge attributes and node attributes from relative directions.
+        edge_attr = spherical_harmonics(self.l, r_ij, normalize=True, normalization="component")
+        node_attr = spherical_harmonics(self.l, pos, normalize=True, normalization="component")
         # Form graph
         return x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij
     
@@ -80,7 +79,7 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
                 t = f[::-1]
                 source.extend(f)
                 sink.extend(t)
-                displacements.extend([pos[start] - pos[stop] for start,stop in zip(f, t)])
+                displacements.extend([pos[stop] - pos[start] for start, stop in zip(f, t)])
             else:
                 # Pulls out the index of the neighbor site
                 destinations = [x.index for x in nbr]
