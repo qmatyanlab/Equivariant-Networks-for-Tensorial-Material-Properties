@@ -61,7 +61,7 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
         edge_dis = torch.norm(r_ij, dim=-1, keepdim=True)
         # Construct edge attributes and node attributes from relative directions and positions
         edge_attr = spherical_harmonics(self.l, r_ij[:, [1, 2, 0]], normalize=True, normalization="component")
-        node_attr = scatter(edge_attr, edge_index[1], dim=0, reduce="mean")
+        node_attr = scatter(edge_attr, edge_index[1], dim=0, reduce="mean", dim_size=pos.shape[0])
         # Form graph
         return x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij
     
