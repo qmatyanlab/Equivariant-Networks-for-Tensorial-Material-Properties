@@ -76,8 +76,8 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
         for i, nbr in enumerate(all_nbrs):
             if len(nbr) == 0:
                 # Atom is connected to nothing, so connect to everything naively
-                f = [i] * pos.shape[0]
-                t = range(pos.shape[0])
+                f = [i] * pos.shape[0] + list(range(pos.shape[0]))
+                t = f[::-1]
                 source.extend(f)
                 sink.extend(t)
                 displacements.extend([pos[start] - pos[stop] for start,stop in zip(f, t)])
