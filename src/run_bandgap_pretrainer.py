@@ -6,7 +6,7 @@ from e3nn.o3 import Irreps
 from pathlib import Path
 import torch
 from tqdm import tqdm
-from torch.nn.functional import l1_loss
+from torch.nn.functional import l1_loss, mse_loss
 
 class BandGapPretrainer(Pretrainer):
     @property
@@ -30,7 +30,8 @@ class BandGapPretrainer(Pretrainer):
         assert train, "Validation is not supported"
         self.model.train()
 
-        total_loss = 0
+        total_mae_loss = 0
+        total_mse_loss = 0
         num_batches = len(dataloader)
 
         for data in tqdm(dataloader, f"Pretrain Batch", leave=False):
@@ -55,10 +56,12 @@ class BandGapPretrainer(Pretrainer):
                 loss = l1_loss(band_gap_pred, band_gap) 
                 
             # Deal with accuracy
-            total_loss += loss.item()
+            total_mae_loss += loss.item()
+            total_mse_loss += mse_loss(band_gap_pred, band_gap).item()
             
         return {
-            "MAE": total_loss / num_batches,
+            "MAE": total_mae_loss / num_batches,
+            "RMSE": (total_mse_loss / num_batches)**(1/2)
         }
     
     def unnormalize(self, band_gap: torch.Tensor) -> torch.Tensor:

@@ -75,10 +75,12 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
         displacements = []
         for i, nbr in enumerate(all_nbrs):
             if len(nbr) == 0:
-                # Atom is connected to nothing, so connect to self
-                source.append(i)
-                sink.append(i)
-                displacements.append(torch.tensor([0,0,0], dtype=torch.float32))
+                # Atom is connected to nothing, so connect to everything naively
+                f = [i] * pos.shape[0]
+                t = range(pos.shape[0])
+                source.extend(f)
+                sink.extend(t)
+                displacements.extend([pos[start] - pos[stop] for start,stop in zip(f, t)])
             else:
                 # Pulls out the index of the neighbor site
                 destinations = [x.index for x in nbr]
