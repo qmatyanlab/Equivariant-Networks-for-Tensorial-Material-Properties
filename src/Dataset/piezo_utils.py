@@ -173,7 +173,7 @@ def r3_jz2msph(jzC):
         '*s_3^-3': ((5/2)**(1/2))*jzC[m,m,m],
         '*s_3^-2': ((15/2)**(1/2))*jzC[z,m,m],
         '*s_3^-1': ((3/2)**(1/2))*(2*jzC[z,z,m]+jzC[p,m,m]),
-        '*s_3^0': (5/7)*(3*jzC[z,z,z]-jzC[z,p,m]),
+        '*s_3^0': (jzC[z,z,z]+3*jzC[z,p,m]),
         '*s_3^1': ((3/2)**(1/2))*(2*jzC[z,z,p]+jzC[p,p,m]),
         '*s_3^2': ((15/2)**(1/2))*jzC[z,p,p],
         '*s_3^3': ((5/2)**(1/2))*jzC[p,p,p],
@@ -233,13 +233,13 @@ def r2_msph2sph(msph):
 
 def r3_sph2msph(sph):
     msph = {
-        '*s_3^-3' : ((7/(4*np.pi))**(-1/2))*sph['s_3^-2'],
+        '*s_3^-3' : ((7/(4*np.pi))**(-1/2))*sph['s_3^-3'],
         '*s_3^-2' : ((7/(4*np.pi))**(-1/2))*sph['s_3^-2'],
         '*s_3^-1' : ((7/(4*np.pi))**(-1/2))*sph['s_3^-1'],
         '*s_3^0' : ((7/(4*np.pi))**(-1/2))*sph['s_3^0'],
         '*s_3^1' : ((7/(4*np.pi))**(-1/2))*sph['s_3^1'],
         '*s_3^2' : ((7/(4*np.pi))**(-1/2))*sph['s_3^2'],
-        '*s_3^3' : ((7/(4*np.pi))**(-1/2))*sph['s_3^2']
+        '*s_3^3' : ((7/(4*np.pi))**(-1/2))*sph['s_3^3']
     }
     
     return msph
@@ -281,7 +281,7 @@ def r3_sph2realsph(sph):
     realsph['s_3_0'] = sph['s_3^0'] 
     realsph['s_3_1'] = (1/(2**(1/2)))*(sph['s_3^-1']-sph['s_3^1'])    
     realsph['s_3_2'] = (1/(2**(1/2)))*(sph['s_3^-2']+sph['s_3^2'])
-    realsph['s_3_3'] = (1/(2**(1/2)))*(sph['s_3^-2']+sph['s_3^2'])
+    realsph['s_3_3'] = (1/(2**(1/2)))*(sph['s_3^-3']-sph['s_3^3'])
 
     return realsph
 
@@ -363,9 +363,9 @@ def r2_msph2cart(msph):
     Converts mochizuki norm components to jz basis tensor
 '''
 def r3_msph2jz(msph):
-    m=0
+    m=2
     z=1
-    p=2
+    p=0
     jz = np.zeros([3,3,3], dtype = complex)
     jz[z,z,z] = (2/5)*msph['*s_3^0']
     jz[p,m,z] = jz[p,z,m] = jz[z,p,m] = jz[m,p,z] = jz[m,z,p] = jz[z,m,p] = (1/5)*msph['*s_3^0']
@@ -381,6 +381,8 @@ def r3_msph2jz(msph):
 
     jz[m,m,m] = ((2/5)**(1/2))*msph['*s_3^-3']
     jz[p,p,p] = ((2/5)**(1/2))*msph['*s_3^3']
+    
+    
 
     return jz
 
