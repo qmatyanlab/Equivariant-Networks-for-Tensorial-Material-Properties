@@ -5,7 +5,8 @@ import json, wandb, torch
 from tqdm import tqdm
 from Dataset.CrystalSO3Dataset import CrystalSO3Dataset
 from Dataset.Normalization import Normalizer
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
+from pathlib import Path
 
 class Pretrainer(Runner, metaclass=ABCMeta):
     """
@@ -88,7 +89,11 @@ class Pretrainer(Runner, metaclass=ABCMeta):
                     # Early stopping if it doesn't improve after 1/8 of the number of epochs
                     break
             self.log_best()
-
+        # Save results
+        Path("trained_models").mkdir(exist_ok=True)
+        torch.save(self.best_model_state_dict, f"trained_models/{self.name.replace(' ', '_')}")
+        self.model.load_state_dict(self.best_model_state_dict)
+        torch.save(self.model.graph_nn.state_dict(), f"trained_models/{self.name.replace(' ', '_')}_graphnn")
 
     def setup_datasets(self) -> CrystalSO3Dataset:
         """

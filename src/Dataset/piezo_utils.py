@@ -1,7 +1,5 @@
 import numpy as np
 import itertools
-import math
-
 
 def cart2voigt(cart):
     voigt = np.zeros([3,6], dtype=complex)

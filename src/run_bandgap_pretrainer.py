@@ -1,7 +1,7 @@
 from Pretrainer import Pretrainer
-from typing import List, Dict, Tuple
+from typing import List, Dict
 from Dataset.BandGapDataset import BandGapDataset
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 from e3nn.o3 import Irreps
 from pathlib import Path
 import torch

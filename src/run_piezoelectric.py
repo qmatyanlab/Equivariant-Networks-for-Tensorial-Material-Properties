@@ -6,14 +6,14 @@ import torch
 from contextlib import nullcontext
 from tqdm import tqdm
 from typing import List, Tuple, Dict
-from RecombinePiezoelectricCoefficients import realsphvec2cart
+from RecombinePiezoelectricCoefficients import reconstruct_from_harmonic_vec
+from utils import get_unique_components
 from e3nn.o3 import Irreps
-from pathlib import Path
 
-class PiezoelectricRunner(Runner):
+class ElasticRunner(Runner):
     @property
     def default_data_path(self) -> str:
-        return "Dataset/piezoelectric"
+        return "Dataset/piezo"
     
     def dataset_class(self, data: List[dict], atom_init: dict, lmax_h: int, radius: float, max_neighbors: int, normalize: bool) -> PiezoelectricDataset:
         return PiezoelectricDataset(data, atom_init, lmax_h, radius, max_neighbors, normalize)
@@ -87,7 +87,7 @@ class PiezoelectricRunner(Runner):
         Returns:
             the unnormalized spherical coefficients.
         """
-        assert sph_coefs.shape[-1] == 6, "Shape of coefs mismatch expected."
+        assert sph_coefs.shape[-1] == 18, "Shape of coefs mismatch expected."
         coef_dict = {"sph": sph_coefs}
         unnorm_dict = self.normalizer.unnormalize(coef_dict)
         return unnorm_dict["sph"]
@@ -104,9 +104,8 @@ class PiezoelectricRunner(Runner):
         Returns:
             The MAE and MSE of the piezoelectric tensor.
         """
-        assert sph_coefs_pred.shape[-1] == 6, "Did not get proper shape of spherical coefficients."
-        piezoelectric_pred = realsphvec2cart(sph_coefs_pred)
-        # Only need unique components from tensor
+        assert sph_coefs_pred.shape[-1] == 18, "Did not get proper shape of spherical coefficients."
+        piezoelectric_pred = reconstruct_from_harmonic_vec(sph_coefs_pred)
         return l1_loss(piezoelectric_pred, piezoelectric_true), mse_loss(piezoelectric_pred, piezoelectric_true)
     
     def record_best(self, epoch: int, logs: dict):
@@ -121,11 +120,8 @@ class PiezoelectricRunner(Runner):
     
     @property
     def output_irreps_lst(self) -> List[Irreps]:
-        return [Irreps("1x0e + 1x2e")]
+        return [Irreps("1x1o + 1x3o + 1x1o + 1x2e")]
 
 if __name__ == "__main__":
-    runner = PiezoelectricRunner()
+    runner = ElasticRunner()
     runner.main()
-    # Save results
-    Path("trained_models").mkdir(exist_ok=True)
-    torch.save(runner.best_model_state_dict, f"trained_models/{runner.name.replace(' ', '_')}")

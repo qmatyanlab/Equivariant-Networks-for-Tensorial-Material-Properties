@@ -9,7 +9,6 @@ from typing import List, Tuple, Dict
 from RecombineDielectricCoefficients import realsphvec2cart
 from utils import get_unique_components
 from e3nn.o3 import Irreps
-from pathlib import Path
 
 class DielectricRunner(Runner):
     @property
@@ -129,6 +128,4 @@ class DielectricRunner(Runner):
 if __name__ == "__main__":
     runner = DielectricRunner()
     runner.main()
-    # Save results
-    Path("trained_models").mkdir(exist_ok=True)
-    torch.save(runner.best_model_state_dict, f"trained_models/{runner.name.replace(' ', '_')}")
+    

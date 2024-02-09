@@ -15,6 +15,7 @@ from argparse import ArgumentParser
 import json
 from Model.BalancedIrreps import BalancedIrreps
 from Dataset.Normalization import Normalizer
+from pathlib import Path
 
 SEED = 13
 NUM_WORKERS = min(cpu_count() - 1, 16)
@@ -127,6 +128,11 @@ class Runner(ABC):
                 self.scheduler.step()
                 self.record_best(epoch, logs)
             self.log_best()
+        # Save results
+        Path("trained_models").mkdir(exist_ok=True)
+        torch.save(self.best_model_state_dict, f"trained_models/{self.name.replace(' ', '_')}")
+        self.model.load_state_dict(self.best_model_state_dict)
+        torch.save(self.model.graph_nn.state_dict(), f"trained_models/{self.name.replace(' ', '_')}_graphnn")
 
     def setup_datasets(self) -> Tuple[CrystalSO3Dataset, CrystalSO3Dataset]:
         """
