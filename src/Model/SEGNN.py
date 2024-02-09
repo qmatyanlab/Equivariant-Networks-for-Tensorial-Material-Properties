@@ -49,21 +49,12 @@ class SEGNN(nn.Module, metaclass=ABCMeta):
 
         self.graph_nn = SEGNNGraphLayers(embedding_layer, graph_layers)
 
-        sum_output_irreps = Irreps("0x0e")
-        for output_irrep in output_irreps_lst:
-            sum_output_irreps += output_irrep
-
-        # Prepare for output irreps, since the attrs will disappear after pooling
-        pooled_irreps = (
-            (sum_output_irreps * hidden_irreps.num_irreps).simplify().sort().irreps
-        )
-
         # Prepool setup
         pre_pool_layers = nn.ModuleList()
         for _ in range(num_prepool_layers - 1):
             pre_pool_layers.append(O3TensorProductSwishGate(hidden_irreps, hidden_irreps, node_attr_irreps))
         pre_pool_layers.append(O3TensorProduct(
-            hidden_irreps, pooled_irreps, node_attr_irreps
+            hidden_irreps, hidden_irreps, node_attr_irreps
         ))
         
         # All outputs
@@ -71,8 +62,8 @@ class SEGNN(nn.Module, metaclass=ABCMeta):
         for output_irrep in output_irreps_lst:
             postpool_layers = []
             for _ in range(num_postpool_layers - 1):
-                postpool_layers.append(O3TensorProductSwishGate(pooled_irreps, pooled_irreps))
-            outputs.append(nn.Sequential(*postpool_layers, O3TensorProduct(pooled_irreps, output_irrep)))
+                postpool_layers.append(O3TensorProductSwishGate(hidden_irreps, hidden_irreps))
+            outputs.append(nn.Sequential(*postpool_layers, O3TensorProduct(hidden_irreps, output_irrep)))
 
         # Store in one precombined module
         self.mlp = SEGNNMLPLayers(pooling, pre_pool_layers, outputs)

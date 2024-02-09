@@ -1,4 +1,5 @@
 import torch, itertools
+import warnings
 
 def reconstruct_from_harmonic_vec(realsphvec):
     assert realsphvec.shape[-1] == 18, "Shape mismatch for real spherical vector"
@@ -20,17 +21,20 @@ def reconstruct_from_harmonic_vec(realsphvec):
     piezo_cart = K + R + Ba + Bs
     voigt = cart2voigt(piezo_cart)
 
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        voigt = voigt.float()
     return voigt
 
 def r1_unreal(realsph):
     Conv = 1/(2**(1/2))*torch.tensor([[-1, -1j, 0],[0,0,2**(1/2)],[1,-1j,0]], dtype=torch.complex64, device=realsph.device)
     Cdag = Conv.conj().T
 
-    sph = torch.hstack([
+    sph = torch.stack([
         (1/(2**(1/2)))*(realsph[:, 2]-1j*realsph[:, 0]),
         realsph[:, 1],
         (-1/(2**(1/2)))*(realsph[:, 2]+1j*realsph[:, 0]),
-    ])
+    ], dim=-1)
 
     jz = ((3/(4*torch.pi))**(-1/2))*sph
     cart = torch.einsum('ij,bj->bi',Cdag,jz)
@@ -38,7 +42,7 @@ def r1_unreal(realsph):
     return cart
 
 def reconstruct_total_psuedotensor(mixed_residue):
-    eps = levi_cevita_tensor(3)
+    eps = levi_cevita_tensor(3).to(mixed_residue.device)
     
     b1 = torch.einsum('kpj,bpm->bkmj',eps,mixed_residue)
     b2 = torch.einsum('kpm,bpj->bkmj',eps,mixed_residue)
@@ -48,9 +52,9 @@ def reconstruct_total_psuedotensor(mixed_residue):
     return P
 
 def reconstruct_mixed_trace(trace_vector):
-    v1 = 2*torch.einsum('jk,bi->bijk',torch.eye(3),trace_vector)
-    v2 = -torch.einsum('ik,bj->bijk',torch.eye(3),trace_vector)
-    v3 = -torch.einsum('ij,bk->bijk',torch.eye(3),trace_vector)
+    v1 = 2*torch.einsum('jk,bi->bijk',torch.eye(3, device=trace_vector.device),trace_vector)
+    v2 = -torch.einsum('ik,bj->bijk',torch.eye(3, device=trace_vector.device),trace_vector)
+    v3 = -torch.einsum('ij,bk->bijk',torch.eye(3, device=trace_vector.device),trace_vector)
     
     M = (1/4)*(v1+v2+v3)
 
@@ -86,9 +90,9 @@ def cart2voigt(cart):
 
 def reconstruct_sym_trace_tensor(trace_vector):
 
-    v1 = torch.einsum('ij,bk->bijk',torch.eye(3),trace_vector)
-    v2 = torch.einsum('ik,bj->bijk',torch.eye(3),trace_vector)
-    v3 = torch.einsum('kj,bi->bijk',torch.eye(3),trace_vector)
+    v1 = torch.einsum('ij,bk->bijk',torch.eye(3, device=trace_vector.device),trace_vector)
+    v2 = torch.einsum('ik,bj->bijk',torch.eye(3, device=trace_vector.device),trace_vector)
+    v3 = torch.einsum('kj,bi->bijk',torch.eye(3, device=trace_vector.device),trace_vector)
 
     k=(1/5)*(v1+v2+v3)
     
@@ -213,8 +217,8 @@ def r3_msph2jz(msph):
 def r3_jz2cart(jz):
     Conv = 1/(2**(1/2))*torch.tensor([[-1, -1j, 0],[0,0,2**(1/2)],[1,-1j,0]], dtype=torch.complex64, device=jz.device)
     Cdag = Conv.conj().T
-    Cdag2 = torch.tensordot(Cdag,Cdag,axes=0)
-    Cdag3 = torch.tensordot(Cdag2,Cdag,axes=0)
+    Cdag2 = torch.tensordot(Cdag,Cdag,dims=0)
+    Cdag3 = torch.tensordot(Cdag2,Cdag,dims=0)
     cart = torch.einsum('ijklmn,bjln->bikm',Cdag3,jz)
     return cart
 
@@ -234,9 +238,9 @@ def r2_msph2cart(msph):
     return cart
 
 def levi_cevita_tensor(dim):   
-    arr=torch.zeros(tuple([dim for _ in range(dim)]))
-    for x in itertools.permutations(tuple(range(dim))):
-        mat = torch.zeros((dim, dim), dtype=torch.int32)
+    arr=torch.zeros([dim for _ in range(dim)], dtype=torch.complex64)
+    for x in itertools.permutations(range(dim)):
+        mat = torch.zeros((dim, dim), dtype=torch.float32)
         for i, j in zip(range(dim), x):
             mat[i, j] = 1
         arr[x]=int(torch.linalg.det(mat))

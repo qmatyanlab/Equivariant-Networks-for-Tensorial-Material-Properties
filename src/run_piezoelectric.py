@@ -7,10 +7,9 @@ from contextlib import nullcontext
 from tqdm import tqdm
 from typing import List, Tuple, Dict
 from RecombinePiezoelectricCoefficients import reconstruct_from_harmonic_vec
-from utils import get_unique_components
 from e3nn.o3 import Irreps
 
-class ElasticRunner(Runner):
+class PiezoelectricRunner(Runner):
     @property
     def default_data_path(self) -> str:
         return "Dataset/piezo"
@@ -123,5 +122,5 @@ class ElasticRunner(Runner):
         return [Irreps("1x1o + 1x3o + 1x1o + 1x2e")]
 
 if __name__ == "__main__":
-    runner = ElasticRunner()
+    runner = PiezoelectricRunner()
     runner.main()
