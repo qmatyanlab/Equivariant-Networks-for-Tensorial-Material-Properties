@@ -24,7 +24,7 @@ class SETransformer(SEGNN):
         super().__init__(input_irreps, hidden_irreps, output_irreps_lst, edge_attr_irreps, node_attr_irreps, 
                          num_graph_layers, num_prepool_layers, num_postpool_layers, norm, pooling, additional_message_irreps)
         # They finish graph layers with a convolutional layer w/out attention
-        self.graph_layers.append(SEConvLayer(self.hidden_irreps, self.hidden_irreps, self.hidden_irreps, 
+        self.graph_nn.graph_layers.append(SEConvLayer(self.hidden_irreps, self.hidden_irreps, self.hidden_irreps, 
                                             self.edge_attr_irreps, self.node_attr_irreps, norm=self.norm, 
                                             additional_message_irreps=self.additional_message_irreps,
                                             conv_type="nonlinear"))
