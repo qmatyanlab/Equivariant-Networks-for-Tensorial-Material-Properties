@@ -396,7 +396,4 @@ class Runner(ABC):
         """
         Sets up an optimizer scheduler based on the config
         """
-        if "setransformer" == self.config["model"]:
-            self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0=self.config["epochs"], T_mult=1, eta_min=1e-8)
-        else:
-            self.scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, gamma=0.1, milestones=[0.8*self.config["epochs"], 0.9*self.config["epochs"]])
+        self.scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, gamma=0.1, milestones=[0.8*self.config["epochs"], 0.9*self.config["epochs"]])
