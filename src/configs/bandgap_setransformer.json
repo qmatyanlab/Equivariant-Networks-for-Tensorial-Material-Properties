@@ -9,7 +9,7 @@
     "weight_decay": 0,
     "optimizer": "adam",
     "epochs": 200,
-    "batch_size": 300,
+    "batch_size": 250,
     "radius": 8.0,
     "max_neighbors": 12,
     "normalize": true,
