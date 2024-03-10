@@ -42,6 +42,7 @@ class Runner(ABC):
         args.add_argument("--pretrained", help="The path to the pretrained weights", type=str)
         args.add_argument("--validation", help="If this is a validation run and not a testing run", action="store_true")
         args.add_argument("--lock_weights", help="If the pretrained graph layers should not be retrained", action="store_true")
+        args.add_argument("--resume", help="Model to resume training from.", type=str)
         args = args.parse_args()
 
         with open(args.config) as f:
@@ -57,6 +58,9 @@ class Runner(ABC):
 
         if args.pretrained is None and args.lock_weights:
             warnings.warn("Can't restrict finetuning if not providing a pretrained model, defaulting to training graph_nn.")
+
+        if args.resume and args.pretrained:
+            raise Exception("Can't get model weights from two locations, only pass in resume or pretrain, not both.")
         
         wandb.login()
     
@@ -97,6 +101,9 @@ class Runner(ABC):
                 print("Locking weights")
                 for param in self.model.graph_nn.parameters():
                     param.requires_grad = False
+        elif args.resume:
+            print("Resuming")
+            self.model.load_state_dict(torch.load(args.resume))
         print("loaded model")
 
         self.model = self.model.to(self.device)

@@ -58,6 +58,7 @@ class Pretrainer(Runner, metaclass=ABCMeta):
         print("loading model")
         self.setup_model(self.config, num_atom_feats)
         if args.resume:
+            print("Resuming")
             self.model.load_state_dict(torch.load(args.resume))
         print("loaded model")
 
