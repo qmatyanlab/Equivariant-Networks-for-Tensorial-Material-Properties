@@ -119,20 +119,24 @@ class Runner(ABC):
         tags = [self.config["model"], "validation" if self.config["validation"] else "testing", 
                 "normalized" if self.config["normalize"] else "unnormalized"]
         with wandb.init(config=self.config, name=self.name, project=PROJECT, tags=tags):
-            for epoch in tqdm(range(self.config["epochs"]), "Epoch"):
-                logs = {}
-                logs.update({"learning_rate": self.scheduler.get_last_lr()[0]})
-                logs.update(self.run_epoch(self.train_loader, train=True))
-                logs.update(self.run_epoch(self.validation_loader, train=False))
-                wandb.log(logs)
-                self.scheduler.step()
-                self.record_best(epoch, logs)
-            self.log_best()
-        # Save results
-        Path("trained_models").mkdir(exist_ok=True)
-        torch.save(self.best_model_state_dict, f"trained_models/{self.name.replace(' ', '_')}")
-        self.model.load_state_dict(self.best_model_state_dict)
-        torch.save(self.model.graph_nn.state_dict(), f"trained_models/{self.name.replace(' ', '_')}_graphnn")
+            try:
+                for epoch in tqdm(range(self.config["epochs"]), "Epoch"):
+                    logs = {}
+                    logs.update({"learning_rate": self.scheduler.get_last_lr()[0]})
+                    logs.update(self.run_epoch(self.train_loader, train=True))
+                    logs.update(self.run_epoch(self.validation_loader, train=False))
+                    wandb.log(logs)
+                    self.scheduler.step()
+                    self.record_best(epoch, logs)
+            except KeyboardInterrupt as e:
+                print(e)
+            finally:    
+                # Save results
+                self.log_best()
+                Path("trained_models").mkdir(exist_ok=True)
+                torch.save(self.best_model_state_dict, f"trained_models/{self.name.replace(' ', '_')}")
+                self.model.load_state_dict(self.best_model_state_dict)
+                torch.save(self.model.graph_nn.state_dict(), f"trained_models/{self.name.replace(' ', '_')}_graphnn")
 
     def setup_datasets(self) -> Tuple[CrystalSO3Dataset, CrystalSO3Dataset]:
         """

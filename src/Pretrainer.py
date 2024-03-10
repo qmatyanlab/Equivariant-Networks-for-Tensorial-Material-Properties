@@ -23,6 +23,7 @@ class Pretrainer(Runner, metaclass=ABCMeta):
         args = ArgumentParser()
         args.add_argument("name", help="The name of the run", type=str)
         args.add_argument("config", help="The path to the config to run.", type=str)
+        args.add_argument("--resume", help="The path to the model file to resume from", type=str)
         args = args.parse_args()
 
         with open(args.config) as f:
@@ -56,6 +57,8 @@ class Pretrainer(Runner, metaclass=ABCMeta):
 
         print("loading model")
         self.setup_model(self.config, num_atom_feats)
+        if args.resume:
+            self.model.load_state_dict(torch.load(args.resume))
         print("loaded model")
 
         self.model = self.model.to(self.device)
@@ -78,22 +81,26 @@ class Pretrainer(Runner, metaclass=ABCMeta):
         tags = [self.config["model"], "pretraining", 
                 "normalized" if self.config["normalize"] else "unnormalized"]
         with wandb.init(config=self.config, name=self.name, project=PROJECT, tags=tags):
-            for epoch in tqdm(range(self.config["epochs"]), "Epoch"):
-                logs = {}
-                logs.update({"learning_rate": self.scheduler.get_last_lr()[0]})
-                logs.update(self.run_epoch(self.data_loader, train=True))
-                wandb.log(logs)
-                self.scheduler.step()
-                self.record_best(epoch, logs)
-                if epoch - self.best_epoch  > (1/8) * self.config["epochs"]:
-                    # Early stopping if it doesn't improve after 1/8 of the number of epochs
-                    break
-            self.log_best()
-        # Save results
-        Path("trained_models").mkdir(exist_ok=True)
-        torch.save(self.best_model_state_dict, f"trained_models/{self.name.replace(' ', '_')}")
-        self.model.load_state_dict(self.best_model_state_dict)
-        torch.save(self.model.graph_nn.state_dict(), f"trained_models/{self.name.replace(' ', '_')}_graphnn")
+            try:
+                for epoch in tqdm(range(self.config["epochs"]), "Epoch"):
+                    logs = {}
+                    logs.update({"learning_rate": self.scheduler.get_last_lr()[0]})
+                    logs.update(self.run_epoch(self.data_loader, train=True))
+                    wandb.log(logs)
+                    self.scheduler.step()
+                    self.record_best(epoch, logs)
+                    if epoch - self.best_epoch  > (1/8) * self.config["epochs"]:
+                        # Early stopping if it doesn't improve after 1/8 of the number of epochs
+                        break
+            except KeyboardInterrupt as e:
+                print(e)
+            finally:
+                # Save results
+                self.log_best()
+                Path("trained_models").mkdir(exist_ok=True)
+                torch.save(self.best_model_state_dict, f"trained_models/{self.name.replace(' ', '_')}")
+                self.model.load_state_dict(self.best_model_state_dict)
+                torch.save(self.model.graph_nn.state_dict(), f"trained_models/{self.name.replace(' ', '_')}_graphnn")
 
     def setup_datasets(self) -> CrystalSO3Dataset:
         """
