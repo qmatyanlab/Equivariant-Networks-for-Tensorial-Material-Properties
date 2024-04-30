@@ -33,12 +33,6 @@ class SETransformerLayer(torch.nn.Module):
         self.fc_v = FullyConnectedNet([number_of_basis, 16, self.tp_v.weight_numel], act=torch.nn.functional.silu)
 
         self.dot = FullyConnectedTensorProduct(hidden_irreps, hidden_irreps, "0e")
-
-        # Self Interaction
-        self.self_interaction_layer = torch.nn.Sequential(
-            Linear(input_irreps, output_irreps),
-            NormActivation(output_irreps, torch.nn.SiLU())
-        )
         
         self.number_of_basis = number_of_basis
         self.max_radius = max_radius
@@ -84,10 +78,7 @@ class SETransformerLayer(torch.nn.Module):
         z[z == 0] = 1
         alpha = exp / z[edge_index[1]]
 
-        # Self Interaction
-        self_interaction_out = self.self_interaction_layer(x)
-
-        return scatter(alpha.relu().sqrt() * v, edge_index[1], dim=0, dim_size=len(x)) + self_interaction_out
+        return scatter(alpha.relu().sqrt() * v, edge_index[1], dim=0, dim_size=len(x))
 
     def forward(
         self,
