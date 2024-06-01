@@ -1,0 +1,12 @@
+# Elastic Default
+python evaluate_elastic.py trained_models/SEConv_-_Elastic_-_Default configs/elastic_seconv.json heatmaps/seconv_default_elastic_heatmap.pdf
+python evaluate_elastic.py trained_models/SEGNN_-_Elastic_-_Default configs/elastic_segnn.json heatmaps/segnn_default_elastic_heatmap.pdf
+python evaluate_elastic.py trained_models/SETransformer_-_Elastic_-_Default configs/elastic_setransformer.json heatmaps/setransformer_default_elastic_heatmap.pdf
+# Elastic BG
+python evaluate_elastic.py trained_models/SEConv_-_Elastic_-_Pretrained configs/elastic_seconv.json heatmaps/seconv_pretrained_bg_elastic_heatmap.pdf
+python evaluate_elastic.py trained_models/SEGNN_-_Elastic_-_Pretrained configs/elastic_segnn.json heatmaps/segnn_pretrained_bg_elastic_heatmap.pdf
+python evaluate_elastic.py trained_models/SETransformer_-_Elastic_-_Pretrained configs/elastic_setransformer.json heatmaps/setransformer_pretrained_bg_elastic_heatmap.pdf
+# Elastic FE
+python evaluate_elastic.py trained_models/SEConv_-_Elastic_-_Pretrained_-_Formation_Energy configs/elastic_seconv.json heatmaps/seconv_pretrained_fe_elastic_heatmap.pdf
+python evaluate_elastic.py trained_models/SEGNN_-_Elastic_-_Pretrained_-_Formation_Energy configs/elastic_segnn.json heatmaps/segnn_pretrained_fe_elastic_heatmap.pdf
+python evaluate_elastic.py trained_models/SETransformer_-_Elastic_-_Pretrained_-_Formation_Energy configs/elastic_setransformer.json heatmaps/setransformer_pretrained_fe_elastic_heatmap.pdf
