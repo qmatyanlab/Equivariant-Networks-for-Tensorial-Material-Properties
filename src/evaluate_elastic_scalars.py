@@ -1,11 +1,13 @@
 from Dataset.ElasticDataset import ElasticDataset
 from Evaluator import Evaluator
-from torch.nn.functional import l1_loss, mse_loss
+from torch.nn.functional import l1_loss
 import torch
 from tqdm import tqdm
 from typing import List, Tuple
 from RecombineElasticCoefficients import realsphvectors2voigt
 from e3nn.o3 import Irreps
+import warnings
+warnings.filterwarnings("ignore")
 
 class ElasticEvaluator(Evaluator):
     @property
@@ -99,11 +101,13 @@ class ElasticEvaluator(Evaluator):
                         - (voigt_tensor[:,0,1] + voigt_tensor[:,1,2] + voigt_tensor[:,2,0]) \
                         + (3*(voigt_tensor[:,3,3] + voigt_tensor[:,4,4] + voigt_tensor[:,5,5])))
     
-    def compute_k_r(self, voigt_tensor):
+    def compute_k_r(self, voigt_tensor: torch.Tensor):
+        voigt_tensor = torch.linalg.pinv(voigt_tensor)
         return 1 / ((voigt_tensor[:,0,0] + voigt_tensor[:,1,1] + voigt_tensor[:,2,2]) \
                         + (2*(voigt_tensor[:,1,2] + voigt_tensor[:,2,3] + voigt_tensor[:,3,1])))
     
-    def compute_g_r(self, voigt_tensor):
+    def compute_g_r(self, voigt_tensor: torch.Tensor):
+        voigt_tensor = torch.linalg.pinv(voigt_tensor)
         return 15 / ((4*(voigt_tensor[:,0,0] + voigt_tensor[:,1,1] + voigt_tensor[:,2,2])) \
                         - (4*(voigt_tensor[:,0,1] + voigt_tensor[:,1,2] + voigt_tensor[:,2,0])) \
                         + (3*(voigt_tensor[:,3,3] + voigt_tensor[:,4,4] + voigt_tensor[:,5,5])))
