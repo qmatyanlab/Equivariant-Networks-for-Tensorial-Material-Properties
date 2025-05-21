@@ -51,7 +51,7 @@ class Evaluator(ModelExecutor, metaclass=ABCMeta):
         )
 
         self.setup_model(self.config, num_atom_feats)
-        self.model.load_state_dict(torch.load(args.model))
+        self.model.load_state_dict(torch.load(args.model, map_location=self.device))
         self.model = self.model.to(self.device)
 
         with open(f"{self.default_data_path}/coef_stats.json") as f:
