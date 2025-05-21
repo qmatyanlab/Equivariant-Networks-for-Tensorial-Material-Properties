@@ -14,13 +14,13 @@ class BandGapDataset(CrystalSO3Dataset):
 
     @lru_cache(None)
     def get(self, idx: int) -> Data:
-        x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij = super().get(idx)
+        x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij, space_group = super().get(idx)
 
         # Setup target
         band_gap = self._get_band_gap(idx)
 
         return Data(x=x, node_attr=node_attr, edge_index=edge_index, edge_attr=edge_attr, edge_dis=edge_dis, 
-                    pos=pos, r_ij=r_ij, band_gap=band_gap)
+                    pos=pos, r_ij=r_ij, band_gap=band_gap, space_group=space_group)
     
     def _get_band_gap(self, idx: int) -> torch.Tensor:
         """

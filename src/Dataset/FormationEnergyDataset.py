@@ -14,13 +14,13 @@ class FormationEnergyDataset(CrystalSO3Dataset):
 
     @lru_cache(None)
     def get(self, idx: int) -> Data:
-        x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij = super().get(idx)
+        x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij, space_group = super().get(idx)
 
         # Setup target
         formation_energy = self._get_formation_energy(idx)
 
         return Data(x=x, node_attr=node_attr, edge_index=edge_index, edge_attr=edge_attr, edge_dis=edge_dis, 
-                    pos=pos, r_ij=r_ij, formation_energy=formation_energy)
+                    pos=pos, r_ij=r_ij, formation_energy=formation_energy, space_group=space_group)
     
     def _get_formation_energy(self, idx: int) -> torch.Tensor:
         """

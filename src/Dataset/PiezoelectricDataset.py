@@ -15,7 +15,7 @@ class PiezoelectricDataset(CrystalSO3Dataset):
 
     @lru_cache(None)
     def get(self, idx: int) -> Data:
-        x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij = super().get(idx)
+        x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij, space_group = super().get(idx)
 
         # Setup target
         sph_coefs = self._get_coefs(idx)
@@ -23,7 +23,7 @@ class PiezoelectricDataset(CrystalSO3Dataset):
         piezoelectric_tensor = torch.tensor(self.molecule_data[idx]["piezo_tensor"], dtype=torch.float32).reshape(1, 3, 6)
 
         return Data(x=x, node_attr=node_attr, edge_index=edge_index, edge_attr=edge_attr, edge_dis=edge_dis, 
-                    pos=pos, r_ij=r_ij, sph_coefs=sph_coefs, piezoelectric_tensor=piezoelectric_tensor)
+                    pos=pos, r_ij=r_ij, sph_coefs=sph_coefs, piezoelectric_tensor=piezoelectric_tensor, space_group=space_group)
     
     def _get_coefs(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
