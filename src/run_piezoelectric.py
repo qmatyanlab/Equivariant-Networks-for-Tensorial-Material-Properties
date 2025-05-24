@@ -52,7 +52,7 @@ class PiezoelectricRunner(Runner):
                 if self.config["normalize"]:
                     sph_pred = self.unnormalize(sph_pred)
 
-                mask = torch.stack([space_group_mask(num) for num in data.space_group])
+                mask = torch.stack([space_group_mask(num) for num in data.space_group]).to(self.device)
 
                 # Compute losses
                 piezoelectric_mae, piezoelectric_mse = self.evaluate_loss_on_piezoelectric_tensor(sph_pred, data.piezoelectric_tensor, mask)

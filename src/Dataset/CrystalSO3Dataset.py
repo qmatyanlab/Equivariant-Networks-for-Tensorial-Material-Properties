@@ -34,6 +34,10 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
         """
         super().__init__()
         self.molecule_data = molecule_data
+        for i in range(len(self.molecule_data)):
+            molecule_data[i]["material"] = Structure.from_dict(self.molecule_data[i]["material"])
+            molecule_data[i]["space_group"] = space_group = SpacegroupAnalyzer(molecule_data[i]["material"]).get_space_group_number()
+        space_group = torch.tensor(space_group, dtype=torch.int64)
         self.atom_init = atom_init
         self.l = Irreps.spherical_harmonics(lmax)
         self.radius = radius
@@ -48,9 +52,8 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
     @abstractmethod
     def get(self, idx: int) -> Data:
         # Extract structure
-        struc = Structure.from_dict(self.molecule_data[idx]["material"])
-        space_group = SpacegroupAnalyzer(struc).get_space_group_number()
-        space_group = torch.tensor(space_group, dtype=torch.int64)
+        struc = self.molecule_data[idx]["material"]
+        space_group = torch.tensor(self.molecule_data[idx]["space_group"], dtype=torch.int64)
         # Setup site positions
         pos = np.vstack([site.coords for site in struc])
         pos = torch.tensor(pos, dtype=torch.float32)
