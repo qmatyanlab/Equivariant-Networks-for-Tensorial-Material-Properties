@@ -35,7 +35,6 @@ class PiezoelectricRunner(Runner):
             self.model.eval()
             location = "Validation"
 
-        total_loss = 0
         piezoelectric_total_mae = 0
         piezoelectric_total_mse = 0
         num_batches = len(dataloader)
@@ -48,30 +47,25 @@ class PiezoelectricRunner(Runner):
                     self.optimizer.zero_grad()
                 sph_pred = self.model(data)[0]
 
-                # Compute losses
-                loss = l1_loss(sph_pred, data.sph_coefs) 
-
-                assert not torch.isnan(loss), "Loss has hit Nan, stopping early."
-
-                # Do training
-                if train:
-                    loss.backward()
-                    self.optimizer.step()
-
                 # Scale loss if normalized
                 if self.config["normalize"]:
                     sph_pred = self.unnormalize(sph_pred)
-                    sph_coefs = self.unnormalize(data.sph_coefs)
-                    loss = l1_loss(sph_pred, sph_coefs) 
+
+                # Compute losses
+                piezoelectric_mae, piezoelectric_mse = self.evaluate_loss_on_piezoelectric_tensor(sph_pred, data.piezoelectric_tensor)
+
+                assert not torch.isnan(piezoelectric_mae), "Loss has hit Nan, stopping early."
+
+                # Do training
+                if train:
+                    piezoelectric_mae.backward()
+                    self.optimizer.step()
                     
                 # Deal with accuracy
-                total_loss += loss.item()
-                piezoelectric_mae, piezoelectric_mse = self.evaluate_loss_on_piezoelectric_tensor(sph_pred, data.piezoelectric_tensor)
                 piezoelectric_total_mae += piezoelectric_mae.item()
                 piezoelectric_total_mse += piezoelectric_mse.item()
             
         return {
-            f"{location} MAE": total_loss / num_batches,
             f"{location}/Piezoelectric MAE": piezoelectric_total_mae / num_batches,
             f"{location}/Piezoelectric RMSE": (piezoelectric_total_mse / num_batches)**(1/2)
         }
