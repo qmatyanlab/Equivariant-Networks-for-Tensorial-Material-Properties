@@ -65,11 +65,11 @@ def get_crystal_structure_dict(mat_ids: List[str], mpr: MPRester):
 
     #Report if not all structures are found
     if len(mat_ids) != len(mat_id_to_dfpt_task_id):
-        print(f'Missing {len(mat_ids)-len(mat_id_to_dfpt_task_id)} material structures for dielectrics!')
+        print(f'Missing {len(mat_ids)-len(mat_id_to_dfpt_task_id)} material structures for piezoelectrics!')
 
     return mat_id_to_struc
 
-def gather_data(mpr: MPRester):
+def gather_data(mpr: MPRester, remove_deprecated = True):
     """
     Gets the piezo tensors and material_id from Materials Project
 
@@ -77,9 +77,20 @@ def gather_data(mpr: MPRester):
         mpr: The mpr api instance.
     """
     data = []
-    mats = mpr.materials.piezoelectric.search(fields=["material_id", "total","ionic","electronic"])
+    if remove_deprecated:
+        mats = mpr.materials.piezoelectric.search(fields=["material_id", "total","ionic","electronic","deprecated"])
+        non_dep_mats = []
+        for mat in mats:
+            if not mat.deprecated:
+                non_dep_mats.append(mat)
+        mats = non_dep_mats
+
+    else:
+        mats = mpr.materials.piezoelectric.search(fields=["material_id", "total","ionic","electronic"])
+    
     mat_ids_to_struc = get_crystal_structure_dict([m.material_id for m in mats], mpr)
-    for mat in tqdm(mats, "Processing Materials"):
+    for mat in tqdm(mats, "Processi" \
+    "ng Materials"):
         if mat.material_id.string in mat_ids_to_struc and mat.total is not None:
             data.append({
                 "material_id": mat.material_id.string,
