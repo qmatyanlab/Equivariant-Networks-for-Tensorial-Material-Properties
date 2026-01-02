@@ -8,7 +8,7 @@ from typing import Union, List
 import warnings
 from elastic_utils import voigt2realsphvectors
 import warnings
-warnings.filterwarnings("ignore", category=np.ComplexWarning)
+#warnings.filterwarnings("ignore", category=np.ComplexWarning)
 
 np.random.seed(7)
 
@@ -19,26 +19,8 @@ TEST = Path("./elastic/test")
 
 LIMITING_FACTOR = 5000
 
-def get_crystal_structure_dict(mat_ids: List[str], mpr: MPRester):
-    """
-      Gets the dictionary of the unit cells of the material ids. 
 
-      Args:
-        mat_ids: The material ids to get the structures of
-        mpr: The mpr api instance
-
-      Returns: 
-        A dictionary of material ids to structure dictionaries
-    """
-    mats = []
-    for i in range(0, len(mat_ids), 10000):
-        mats.extend(mpr.materials.search(material_ids=mat_ids[i:i+10000], fields=["material_id", "structure"]))
-    mat_id_to_struc = {}
-    for mat in mats:
-        mat_id_to_struc[mat.material_id.string] = mat.structure.as_dict()
-    return mat_id_to_struc
-
-def gather_data(mpr: MPRester):
+def gather_data(mpr: MPRester, remove_deprecated = True):
     """
     Gets the elasticity tensors and material_id from Materials Project
 
@@ -46,13 +28,22 @@ def gather_data(mpr: MPRester):
         mpr: The mpr api instance.
     """
     data = []
-    mats = mpr.materials.elasticity.search(fields=["material_id", "elastic_tensor"])
-    mat_ids_to_struc = get_crystal_structure_dict([m.material_id for m in mats], mpr)
+    if remove_deprecated:
+        mats = mpr.materials.elasticity.search(fields=["material_id", "elastic_tensor","structure","deprecated"])
+        non_dep_mats = []
+        for mat in mats:
+            if not mat.deprecated:
+                non_dep_mats.append(mat)
+        mats = non_dep_mats
+        
+    else:
+        mats = mpr.materials.elasticity.search(fields=["material_id", "elastic_tensor","structure"])
+
     for mat in tqdm(mats, "Processing Materials"):
-        if mat.material_id.string in mat_ids_to_struc and mat.elastic_tensor is not None:
+        if mat.elastic_tensor is not None:
             data.append({
                 "material_id": mat.material_id.string,
-                "material": mat_ids_to_struc[mat.material_id.string],
+                "material": mat.structure.as_dict(),
                 "elasticity_tensor": mat.elastic_tensor.ieee_format
             })
     return data

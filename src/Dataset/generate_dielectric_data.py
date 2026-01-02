@@ -8,7 +8,7 @@ from typing import Union, List
 import warnings
 from dielectric_utils import cart2realsphvec
 import warnings
-warnings.filterwarnings("ignore", category=np.ComplexWarning)
+#warnings.filterwarnings("ignore", category=np.ComplexWarning)
 
 np.random.seed(7)
 
@@ -30,15 +30,46 @@ def get_crystal_structure_dict(mat_ids: List[str], mpr: MPRester):
       Returns: 
         A dictionary of material ids to structure dictionaries
     """
-    mats = []
+    #Get summary docs including all task ids for every material
+    sum_docs = []
     for i in range(0, len(mat_ids), 10000):
-        mats.extend(mpr.materials.search(material_ids=mat_ids[i:i+10000], fields=["material_id", "structure"]))
+        sum_docs.extend(mpr.materials.summary.search(material_ids=mat_ids[i:i+10000], fields=["material_id", "task_ids"]))
+
+    #Search for info on all related task ids
+    all_task_ids = []
+    task_id_to_mat_id = {}
+    for sum_doc in sum_docs:
+        for task_id in sum_doc.task_ids:
+            task_id_to_mat_id[task_id] = sum_doc.material_id
+        all_task_ids += sum_doc.task_ids
+    all_task_info = []
+    for i in range(0, len(all_task_ids), 10000):
+        all_task_info.extend(mpr.materials.tasks.search(task_ids=all_task_ids[i:i+10000], fields= ['calc_type', 'structure', 'task_id', 'output']))
+    tasks_dict = {}
+    
+    for task in all_task_info:
+        tasks_dict[task.task_id.string] = {
+            'calc_type': task['calc_type'],
+            'structure': task['structure'],
+            'output': task['output'],
+            'material_id': task_id_to_mat_id[task.task_id.string]
+        }
+
+    #Collate material_ids with strucutres from tasks of matching calc_type
+    mat_id_to_dfpt_task_id = {}
     mat_id_to_struc = {}
-    for mat in mats:
-        mat_id_to_struc[mat.material_id.string] = mat.structure.as_dict()
+    for task_id, task_dict in tasks_dict.items():
+        if task_dict['calc_type'] == 'GGA DFPT Dielectric':
+            mat_id_to_dfpt_task_id[task_dict['material_id']] = task['task_id']
+            mat_id_to_struc[task_dict['material_id']] = task['structure'].as_dict()
+
+    #Report if not all structures are found
+    if len(mat_ids) != len(mat_id_to_dfpt_task_id):
+        print(f'Missing {len(mat_ids)-len(mat_id_to_dfpt_task_id)} material structures for dielectrics!')
+
     return mat_id_to_struc
 
-def gather_data(mpr: MPRester):
+def gather_data(mpr: MPRester, remove_deprecated = True):
     """
     Gets the dielectric tensors and material_id from Materials Project
 
@@ -46,9 +77,21 @@ def gather_data(mpr: MPRester):
         mpr: The mpr api instance.
     """
     data = []
-    mats = mpr.materials.dielectric.search(fields=["material_id", "total","ionic","electronic"])
+
+    if remove_deprecated:
+        mats = mpr.materials.dielectric.search(fields=["material_id", "total","ionic","electronic","deprecated","deprecation_reasons"])
+
+        non_dep_mats = []
+        for mat in mats:
+            if not mat.deprecated:
+                non_dep_mats.append(mat)
+        mats = non_dep_mats
+        
+    else:
+        mats = mpr.materials.dielectric.search(fields=["material_id", "total","ionic","electronic"])
+
     mat_ids_to_struc = get_crystal_structure_dict([m.material_id for m in mats], mpr)
-    for mat in tqdm(mats, "Processing Materials"):
+    for mat in tqdm(mats, "Processing Materials"):                         
         if mat.material_id.string in mat_ids_to_struc and mat.total is not None:
             data.append({
                 "material_id": mat.material_id.string,
