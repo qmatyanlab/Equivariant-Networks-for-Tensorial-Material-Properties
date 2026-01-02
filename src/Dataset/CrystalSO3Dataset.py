@@ -8,6 +8,7 @@ from torch_scatter import scatter
 from abc import ABCMeta, abstractmethod
 from .Normalization import Normalizer
 import json
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
     """
@@ -33,6 +34,10 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
         """
         super().__init__()
         self.molecule_data = molecule_data
+        for i in range(len(self.molecule_data)):
+            molecule_data[i]["material"] = Structure.from_dict(self.molecule_data[i]["material"])
+            molecule_data[i]["space_group"] = space_group = SpacegroupAnalyzer(molecule_data[i]["material"]).get_space_group_number()
+        space_group = torch.tensor(space_group, dtype=torch.int64)
         self.atom_init = atom_init
         self.l = Irreps.spherical_harmonics(lmax)
         self.radius = radius
@@ -47,7 +52,8 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
     @abstractmethod
     def get(self, idx: int) -> Data:
         # Extract structure
-        struc = Structure.from_dict(self.molecule_data[idx]["material"])
+        struc = self.molecule_data[idx]["material"]
+        space_group = torch.tensor(self.molecule_data[idx]["space_group"], dtype=torch.int64)
         # Setup site positions
         pos = np.vstack([site.coords for site in struc])
         pos = torch.tensor(pos, dtype=torch.float32)
@@ -63,7 +69,7 @@ class CrystalSO3Dataset(Dataset, metaclass=ABCMeta):
         edge_attr = spherical_harmonics(self.l, r_ij[:, [1, 2, 0]], normalize=True, normalization="component")
         node_attr = scatter(edge_attr, edge_index[1], dim=0, reduce="mean", dim_size=pos.shape[0])
         # Form graph
-        return x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij
+        return x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij, space_group
     
     def _compute_neighbors(self, struc: Structure, pos: torch.Tensor) -> torch.Tensor:
         all_nbrs = struc.get_all_neighbors(self.radius)

@@ -15,7 +15,7 @@ class ElasticDataset(CrystalSO3Dataset):
 
     @lru_cache(None)
     def get(self, idx: int) -> Data:
-        x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij = super().get(idx)
+        x, node_attr, edge_index, edge_attr, edge_dis, pos, r_ij, space_group = super().get(idx)
 
         # Setup target
         symmetric_coefs, asymmetric_coefs = self._get_coefs(idx)
@@ -24,7 +24,7 @@ class ElasticDataset(CrystalSO3Dataset):
 
         return Data(x=x, node_attr=node_attr, edge_index=edge_index, edge_attr=edge_attr, edge_dis=edge_dis, 
                     pos=pos, r_ij=r_ij, symmetric_coefs=symmetric_coefs, asymmetric_coefs=asymmetric_coefs, 
-                    voigt_tensor=voigt_tensor)
+                    voigt_tensor=voigt_tensor, space_group=space_group)
     
     def _get_coefs(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """

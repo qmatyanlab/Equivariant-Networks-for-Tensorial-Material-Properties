@@ -8,6 +8,7 @@ from tqdm import tqdm
 from typing import List, Tuple, Dict
 from RecombinePiezoelectricCoefficients import reconstruct_from_harmonic_vec
 from e3nn.o3 import Irreps
+from piezo_mask import space_group_mask
 
 class PiezoelectricRunner(Runner):
     @property
@@ -35,7 +36,6 @@ class PiezoelectricRunner(Runner):
             self.model.eval()
             location = "Validation"
 
-        total_loss = 0
         piezoelectric_total_mae = 0
         piezoelectric_total_mse = 0
         num_batches = len(dataloader)
@@ -48,30 +48,27 @@ class PiezoelectricRunner(Runner):
                     self.optimizer.zero_grad()
                 sph_pred = self.model(data)[0]
 
-                # Compute losses
-                loss = l1_loss(sph_pred, data.sph_coefs) 
-
-                assert not torch.isnan(loss), "Loss has hit Nan, stopping early."
-
-                # Do training
-                if train:
-                    loss.backward()
-                    self.optimizer.step()
-
                 # Scale loss if normalized
                 if self.config["normalize"]:
                     sph_pred = self.unnormalize(sph_pred)
-                    sph_coefs = self.unnormalize(data.sph_coefs)
-                    loss = l1_loss(sph_pred, sph_coefs) 
+
+                mask = torch.stack([space_group_mask(num) for num in data.space_group]).to(self.device)
+
+                # Compute losses
+                piezoelectric_mae, piezoelectric_mse = self.evaluate_loss_on_piezoelectric_tensor(sph_pred, data.piezoelectric_tensor, mask)
+
+                assert not torch.isnan(piezoelectric_mae), "Loss has hit Nan, stopping early."
+
+                # Do training
+                if train:
+                    piezoelectric_mae.backward()
+                    self.optimizer.step()
                     
                 # Deal with accuracy
-                total_loss += loss.item()
-                piezoelectric_mae, piezoelectric_mse = self.evaluate_loss_on_piezoelectric_tensor(sph_pred, data.piezoelectric_tensor)
                 piezoelectric_total_mae += piezoelectric_mae.item()
                 piezoelectric_total_mse += piezoelectric_mse.item()
             
         return {
-            f"{location} MAE": total_loss / num_batches,
             f"{location}/Piezoelectric MAE": piezoelectric_total_mae / num_batches,
             f"{location}/Piezoelectric RMSE": (piezoelectric_total_mse / num_batches)**(1/2)
         }
@@ -92,7 +89,7 @@ class PiezoelectricRunner(Runner):
         return unnorm_dict["sph"]
     
     def evaluate_loss_on_piezoelectric_tensor(self, sph_coefs_pred: torch.Tensor, 
-                                  piezoelectric_true: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+                                  piezoelectric_true: torch.Tensor, mask: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Computes the model's prediction of the voigt tensor and calculates MAE
 
@@ -105,6 +102,8 @@ class PiezoelectricRunner(Runner):
         """
         assert sph_coefs_pred.shape[-1] == 18, "Did not get proper shape of spherical coefficients."
         piezoelectric_pred = reconstruct_from_harmonic_vec(sph_coefs_pred)
+        piezoelectric_pred = piezoelectric_pred * mask
+        piezoelectric_true = piezoelectric_true * mask
         return l1_loss(piezoelectric_pred, piezoelectric_true), mse_loss(piezoelectric_pred, piezoelectric_true)
     
     def record_best(self, epoch: int, logs: dict):
