@@ -8,6 +8,7 @@ from typing import Union, List
 import warnings
 from piezo_utils import real_harmonic_components_piezo
 import warnings
+import pickle
 #warnings.filterwarnings("ignore", category=np.ComplexWarning)
 
 np.random.seed(7)
@@ -60,12 +61,15 @@ def get_crystal_structure_dict(mat_ids: List[str], mpr: MPRester):
     mat_id_to_struc = {}
     for task_id, task_dict in tasks_dict.items():
         if task_dict['calc_type'] == 'GGA DFPT Dielectric':
-            mat_id_to_dfpt_task_id[task_dict['material_id']] = task['task_id']
-            mat_id_to_struc[task_dict['material_id']] = task['structure'].as_dict()
+            mat_id_to_dfpt_task_id[task_dict['material_id']] = task_id
+            mat_id_to_struc[task_dict['material_id']] = task_dict['structure'].as_dict()
 
     #Report if not all structures are found
     if len(mat_ids) != len(mat_id_to_dfpt_task_id):
         print(f'Missing {len(mat_ids)-len(mat_id_to_dfpt_task_id)} material structures for piezoelectrics!')
+
+    with open('./piezo/mat_id_to_task_id.pkl','w') as f:
+        pickle.dump(mat_id_to_dfpt_task_id, f)
 
     return mat_id_to_struc
 
@@ -88,7 +92,7 @@ def gather_data(mpr: MPRester, remove_deprecated = True):
     else:
         mats = mpr.materials.piezoelectric.search(fields=["material_id", "total","ionic","electronic"])
     
-    mat_ids_to_struc = get_crystal_structure_dict([m.material_id for m in mats], mpr)
+    mat_ids_to_struc /= get_crystal_structure_dict([m.material_id for m in mats], mpr)
     for mat in tqdm(mats, "Processi" \
     "ng Materials"):
         if mat.material_id.string in mat_ids_to_struc and mat.total is not None:

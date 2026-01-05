@@ -8,6 +8,7 @@ from typing import Union, List
 import warnings
 from dielectric_utils import cart2realsphvec
 import warnings
+import pickle
 #warnings.filterwarnings("ignore", category=np.ComplexWarning)
 
 np.random.seed(7)
@@ -60,12 +61,15 @@ def get_crystal_structure_dict(mat_ids: List[str], mpr: MPRester):
     mat_id_to_struc = {}
     for task_id, task_dict in tasks_dict.items():
         if task_dict['calc_type'] == 'GGA DFPT Dielectric':
-            mat_id_to_dfpt_task_id[task_dict['material_id']] = task['task_id']
-            mat_id_to_struc[task_dict['material_id']] = task['structure'].as_dict()
+            mat_id_to_dfpt_task_id[task_dict['material_id']] = task_id
+            mat_id_to_struc[task_dict['material_id']] = task_dict['structure'].as_dict()
 
     #Report if not all structures are found
     if len(mat_ids) != len(mat_id_to_dfpt_task_id):
         print(f'Missing {len(mat_ids)-len(mat_id_to_dfpt_task_id)} material structures for dielectrics!')
+
+    with open('./dielectric/mat_id_to_task_id.pkl','w') as f:
+        pickle.dump(mat_id_to_dfpt_task_id, f)
 
     return mat_id_to_struc
 
