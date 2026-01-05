@@ -68,7 +68,7 @@ def get_crystal_structure_dict(mat_ids: List[str], mpr: MPRester):
     if len(mat_ids) != len(mat_id_to_dfpt_task_id):
         print(f'Missing {len(mat_ids)-len(mat_id_to_dfpt_task_id)} material structures for dielectrics!')
 
-    with open('./dielectric/mat_id_to_task_id.pkl','w') as f:
+    with open('./dielectric/mat_id_to_task_id.pkl','wb') as f:
         pickle.dump(mat_id_to_dfpt_task_id, f)
 
     return mat_id_to_struc
@@ -219,7 +219,7 @@ def main():
             data = json.load(f)
     else:
         with open("APIKEY") as f:
-            mpr = MPRester(f.read())
+            mpr = MPRester(f.read().strip())
         data = gather_data(mpr)
         with CACHE.open("wt+") as f:
             json.dump(data, f)

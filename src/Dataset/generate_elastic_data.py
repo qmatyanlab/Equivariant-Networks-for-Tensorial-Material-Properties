@@ -187,7 +187,7 @@ def main():
             data = json.load(f)
     else:
         with open("APIKEY") as f:
-            mpr = MPRester(f.read())
+            mpr = MPRester(f.read().strip())
         data = gather_data(mpr)
         with CACHE.open("wt+") as f:
             json.dump(data, f)
