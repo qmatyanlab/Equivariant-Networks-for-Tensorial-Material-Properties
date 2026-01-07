@@ -93,7 +93,7 @@ class DielectricRunner(Runner):
         return unnorm_dict["sph"]
     
     def evaluate_loss_on_dielectric_tensor(self, sph_coefs_pred: torch.Tensor, 
-                                  dielectric_true: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+                                  dielectric_true: torch.Tensor, e3nn_trans=True) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Computes the model's prediction of the voigt tensor and calculates MAE
 
@@ -105,7 +105,12 @@ class DielectricRunner(Runner):
             The MAE and MSE of the dielectric tensor.
         """
         assert sph_coefs_pred.shape[-1] == 6, "Did not get proper shape of spherical coefficients."
-        voigt_pred = realsphvec2cart(sph_coefs_pred)
+        if e3nn_trans:
+            from e3nn.io import CartesianTensor
+            cart_trans = CartesianTensor("ij=ji")
+            voigt_pred = cart_trans.to_cartesian(sph_coefs_pred)
+        else:
+            voigt_pred = realsphvec2cart(sph_coefs_pred)
         # Only need unique components from tensor
         dielectric_pred_components = get_unique_components(voigt_pred)
         dielectric_true_components = get_unique_components(dielectric_true)

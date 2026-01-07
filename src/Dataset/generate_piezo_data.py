@@ -92,7 +92,7 @@ def gather_data(mpr: MPRester, remove_deprecated = True):
     else:
         mats = mpr.materials.piezoelectric.search(fields=["material_id", "total","ionic","electronic"])
     
-    mat_ids_to_struc /= get_crystal_structure_dict([m.material_id for m in mats], mpr)
+    mat_ids_to_struc = get_crystal_structure_dict([m.material_id for m in mats], mpr)
     for mat in tqdm(mats, "Processi" \
     "ng Materials"):
         if mat.material_id.string in mat_ids_to_struc and mat.total is not None:
@@ -116,7 +116,7 @@ def compute_spherical_harmonic_coefficients(data: List[dict]):
     Returns the data with the computed spherical harmonics
     """
     for d in tqdm(data, "Computing Real Spherical Harmonic Coefficients"):
-        sph_coefs = real_harmonic_components_piezo(d["piezo_tensor"])
+        sph_coefs = real_harmonic_components_piezo(d["electric_contribution"])
         sph_coefs = sph_coefs.astype(float)
         d["sph_coefs"] = sph_coefs
 
@@ -175,7 +175,7 @@ def save_data(data: List[dict], dest: Union[str, Path]):
     useful_data = [
         {
             "material": d["material"], 
-            "piezo_tensor": d["piezo_tensor"],
+            "piezo_tensor": d["electric_contribution"],
             "sph_coefs": d["sph_coefs"].tolist(),
         } 
     for d in data]

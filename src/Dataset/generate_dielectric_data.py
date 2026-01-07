@@ -107,7 +107,7 @@ def gather_data(mpr: MPRester, remove_deprecated = True):
     return data
 
 
-def compute_spherical_harmonic_coefficients(data: List[dict]):
+def compute_spherical_harmonic_coefficients(data: List[dict], e3nn_trans = True):
     """
     Computes the spherical harmonic coefficients of the voigt tensors in the data.
 
@@ -116,10 +116,22 @@ def compute_spherical_harmonic_coefficients(data: List[dict]):
 
     Returns the data with the computed spherical harmonics
     """
-    for d in tqdm(data, "Computing Real Spherical Harmonic Coefficients"):
-        sph_coefs = cart2realsphvec(d["dielectric_tensor"])
-        sph_coefs = sph_coefs.astype(float)
-        d["sph_coefs"] = sph_coefs
+
+    if e3nn_trans:
+        from e3nn.io import CartesianTensor
+        import torch
+        cart_trans = CartesianTensor("ij=ji")
+        for d in tqdm(data, "Computing Real Spherical Harmonic Coefficients"):
+            sph_coefs = cart_trans.from_cartesian(torch.tensor(d["electric_contribution"]))
+            sph_coefs = sph_coefs.float()
+            d["sph_coefs"] = sph_coefs
+
+
+    else:
+        for d in tqdm(data, "Computing Real Spherical Harmonic Coefficients"):
+            sph_coefs = cart2realsphvec(d["electric_contribution"])
+            sph_coefs = sph_coefs.astype(float)
+            d["sph_coefs"] = sph_coefs
 
 def prune_outliers(data: List[dict]):
     """
@@ -176,7 +188,7 @@ def save_data(data: List[dict], dest: Union[str, Path]):
     useful_data = [
         {
             "material": d["material"], 
-            "dielectric_tensor": d["dielectric_tensor"],
+            "dielectric_tensor": d["electric_contribution"],
             "sph_coefs": d["sph_coefs"].tolist(),
         } 
     for d in data]
