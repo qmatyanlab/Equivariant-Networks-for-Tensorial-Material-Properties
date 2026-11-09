@@ -54,6 +54,10 @@ class ModelExecutor(ABC):
         """
         raise NotImplementedError("Must choose output in subclasses")
     
+    def head_irreps(self, config: dict):
+        """Irreps of the task-specific head. None means the same as the hidden irreps."""
+        return None
+
     def setup_model(self, config: dict, num_atom_feats: int):
         """
         Sets up the models to be run with the right output style
@@ -69,18 +73,20 @@ class ModelExecutor(ABC):
             self.model = self.setup_sempgnn(num_atom_feats=num_atom_feats, lmax_h=config["lmax_h"], 
                                 hidden_features=config["hidden_features"], num_graph_layers=config["num_graph_layers"],
                                 num_prepool_layers=config["num_prepool_layers"], num_postpool_layers=config["num_postpool_layers"],
-                                output_irreps_lst=self.output_irreps_lst, norm=config["layer_norm"], pooling=config["pooling"])
+                                output_irreps_lst=self.output_irreps_lst, norm=config["layer_norm"], pooling=config["pooling"],
+                                head_irreps=self.head_irreps(config))
         elif "seconv" in config["model"]:
             self.model = self.setup_seconv(num_atom_feats=num_atom_feats, lmax_h=config["lmax_h"], hidden_features=config["hidden_features"], 
                                 num_graph_layers=config["num_graph_layers"], num_prepool_layers=config["num_prepool_layers"], 
                                 num_postpool_layers=config["num_postpool_layers"], conv_type=config["model"][config["model"].rfind("-") + 1:],
-                                output_irreps_lst=self.output_irreps_lst, norm=config["layer_norm"], pooling=config["pooling"])
+                                output_irreps_lst=self.output_irreps_lst, norm=config["layer_norm"], pooling=config["pooling"],
+                                head_irreps=self.head_irreps(config))
         elif "setransformer" == config["model"]:
             self.model = self.setup_setransformer(num_atom_feats=num_atom_feats, lmax_h=config["lmax_h"], 
                                 hidden_features=config["hidden_features"], num_graph_layers=config["num_graph_layers"],
                                 num_prepool_layers=config["num_prepool_layers"], num_postpool_layers=config["num_postpool_layers"],
                                 output_irreps_lst=self.output_irreps_lst, norm=config["layer_norm"], max_radius=config["radius"], 
-                                pooling=config["pooling"])
+                                pooling=config["pooling"], head_irreps=self.head_irreps(config))
         else:
             raise Exception("No such model of that type")
             
@@ -108,7 +114,7 @@ class ModelExecutor(ABC):
 
     def setup_sempgnn(self, num_atom_feats: int, lmax_h: int, hidden_features: int, num_graph_layers: int, 
                     num_prepool_layers: int, num_postpool_layers: int, output_irreps_lst: List[Irreps],
-                    norm: Literal["none", "batch"], pooling: Literal["mean", "add", "max"]) -> SEMPNN:
+                    norm: Literal["none", "batch"], pooling: Literal["mean", "add", "max"], head_irreps=None) -> SEMPNN:
         """
         Sets up a SEMPN model based on the parameters provided.
 
@@ -141,12 +147,13 @@ class ModelExecutor(ABC):
             num_postpool_layers=num_postpool_layers,
             additional_message_irreps=additional_message_irreps,
             norm=norm,
-            pooling=pooling)
+            pooling=pooling,
+            head_irreps=head_irreps)
 
     def setup_seconv(self, num_atom_feats: int, lmax_h: int, hidden_features: int, num_graph_layers: int, 
                     num_prepool_layers: int, num_postpool_layers: int, 
                     conv_type: Literal["linear", "nonlinear"], output_irreps_lst: List[Irreps],
-                    norm: Literal["none", "batch"], pooling: Literal["mean", "add", "max"]) -> SEConv:
+                    norm: Literal["none", "batch"], pooling: Literal["mean", "add", "max"], head_irreps=None) -> SEConv:
         """
         Sets up a SEConv model based on the parameters provided.
 
@@ -181,11 +188,12 @@ class ModelExecutor(ABC):
             additional_message_irreps=additional_message_irreps,
             conv_type=conv_type,
             norm=norm,
-            pooling=pooling)
+            pooling=pooling,
+            head_irreps=head_irreps)
 
     def setup_setransformer(self, num_atom_feats: int, lmax_h: int, hidden_features: int, num_graph_layers: int, 
                     num_prepool_layers: int, num_postpool_layers: int, output_irreps_lst: List[Irreps],
-                    norm: Literal["none", "batch"], max_radius: float, pooling: Literal["mean", "add", "max"]) -> SETransformer:
+                    norm: Literal["none", "batch"], max_radius: float, pooling: Literal["mean", "add", "max"], head_irreps=None) -> SETransformer:
         """
         Sets up a SETransformer model based on the parameters provided.
 
@@ -220,4 +228,5 @@ class ModelExecutor(ABC):
             additional_message_irreps=additional_message_irreps,
             norm=norm,
             max_radius=max_radius,
-            pooling=pooling)
+            pooling=pooling,
+            head_irreps=head_irreps)

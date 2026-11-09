@@ -14,7 +14,8 @@ from Dataset.Normalization import Normalizer
 from pathlib import Path
 
 SEED = 13
-NUM_WORKERS = min(cpu_count() - 1, 16)
+import os
+NUM_WORKERS = int(os.environ.get("NUM_WORKERS", min(cpu_count() - 1, 16)))
 PROJECT = "Transfer Learning For Crystal Properties"
 
 class Runner(ModelExecutor, metaclass=ABCMeta):

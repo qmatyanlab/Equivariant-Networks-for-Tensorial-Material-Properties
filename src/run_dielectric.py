@@ -93,7 +93,7 @@ class DielectricRunner(Runner):
         return unnorm_dict["sph"]
     
     def evaluate_loss_on_dielectric_tensor(self, sph_coefs_pred: torch.Tensor, 
-                                  dielectric_true: torch.Tensor, e3nn_trans=True) -> Tuple[torch.Tensor, torch.Tensor]:
+                                  dielectric_true: torch.Tensor, e3nn_trans=False) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Computes the model's prediction of the voigt tensor and calculates MAE
 

@@ -3,6 +3,10 @@ import warnings
 
 def reconstruct_from_harmonic_vec(realsphvec):
     assert realsphvec.shape[-1] == 18, "Shape mismatch for real spherical vector"
+    # Coefficients are stored with the x-component of both l=1 blocks sign-flipped relative to r1_real so that they
+    # transform like the network's (y, z, x) basis (see Dataset/piezo_utils.L1_X_INDICES); undo before r1_unreal.
+    realsphvec = realsphvec.clone()
+    realsphvec[:, [2, 12]] = -realsphvec[:, [2, 12]]
     a = realsphvec[:, 0:3]
     a = r1_unreal(a)
     K = reconstruct_sym_trace_tensor(a)

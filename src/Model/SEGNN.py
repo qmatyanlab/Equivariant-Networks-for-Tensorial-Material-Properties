@@ -21,7 +21,8 @@ class SEGNN(nn.Module, metaclass=ABCMeta):
         num_postpool_layers: int,
         norm: str,
         pooling: str,
-        additional_message_irreps: Irreps
+        additional_message_irreps: Irreps,
+        head_irreps: Irreps = None
     ):
         super().__init__()
         self.input_irreps = input_irreps
@@ -50,11 +51,17 @@ class SEGNN(nn.Module, metaclass=ABCMeta):
         self.graph_nn = SEGNNGraphLayers(embedding_layer, graph_layers)
 
         # Prepool setup
+        # head_irreps (default: hidden_irreps) are the irreps of the task-specific layers. A head with both parities
+        # can output pseudo-tensors (e.g. the 2o block of the piezoelectric tensor) from the natural-parity backbone.
+        head_irreps = hidden_irreps if head_irreps is None else head_irreps
+        self.head_irreps = head_irreps
         pre_pool_layers = nn.ModuleList()
+        irreps_in = hidden_irreps
         for _ in range(num_prepool_layers - 1):
-            pre_pool_layers.append(O3TensorProductSwishGate(hidden_irreps, hidden_irreps, node_attr_irreps))
+            pre_pool_layers.append(O3TensorProductSwishGate(irreps_in, head_irreps, node_attr_irreps))
+            irreps_in = head_irreps
         pre_pool_layers.append(O3TensorProduct(
-            hidden_irreps, hidden_irreps, node_attr_irreps
+            irreps_in, head_irreps, node_attr_irreps
         ))
         
         # All outputs
@@ -62,8 +69,8 @@ class SEGNN(nn.Module, metaclass=ABCMeta):
         for output_irrep in output_irreps_lst:
             postpool_layers = []
             for _ in range(num_postpool_layers - 1):
-                postpool_layers.append(O3TensorProductSwishGate(hidden_irreps, hidden_irreps))
-            outputs.append(nn.Sequential(*postpool_layers, O3TensorProduct(hidden_irreps, output_irrep)))
+                postpool_layers.append(O3TensorProductSwishGate(head_irreps, head_irreps))
+            outputs.append(nn.Sequential(*postpool_layers, O3TensorProduct(head_irreps, output_irrep)))
 
         # Store in one precombined module
         self.mlp = SEGNNMLPLayers(pooling, pre_pool_layers, outputs)

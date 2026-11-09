@@ -52,7 +52,9 @@ class PiezoelectricRunner(Runner):
                 if self.config["normalize"]:
                     sph_pred = self.unnormalize(sph_pred)
 
-                mask = torch.stack([space_group_mask(num) for num in data.space_group]).to(self.device)
+                # No space-group mask: the static mask assumes the IEEE orientation, which frame-aligned records need not
+                # have, and an equivariant model already predicts the symmetry-forbidden components as zero.
+                mask = torch.ones_like(data.piezoelectric_tensor)
 
                 # Compute losses
                 piezoelectric_mae, piezoelectric_mse = self.evaluate_loss_on_piezoelectric_tensor(sph_pred, data.piezoelectric_tensor, mask)
@@ -116,9 +118,16 @@ class PiezoelectricRunner(Runner):
             self.best_logs = logs
             self.best_model_state_dict = self.model.state_dict()
     
+    def head_irreps(self, config: dict):
+        # Both parities for l >= 1, so the head can form the pseudo-tensor (2o) block from natural-parity features.
+        from Model.BalancedIrreps import BalancedIrreps
+        # Sorted into e3nn's canonical order: e3nn's Gate sorts its input irreps internally, so an unsorted mixed-parity
+        # list (1e before 1o) would silently swap the parity of the gated channels.
+        return BalancedIrreps(config["lmax_h"], config["hidden_features"], sh_type=False).sort().irreps.simplify()
+
     @property
     def output_irreps_lst(self) -> List[Irreps]:
-        return [Irreps("1x1o + 1x3o + 1x1o + 1x2e")]
+        return [Irreps("1x1o + 1x3o + 1x1o + 1x2o")]
 
 if __name__ == "__main__":
     runner = PiezoelectricRunner()

@@ -39,11 +39,18 @@ def gather_data(mpr: MPRester, remove_deprecated = True):
     else:
         mats = mpr.materials.elasticity.search(fields=["material_id", "elastic_tensor","structure"])
 
+    from pymatgen.core.tensors import Tensor
+    from pymatgen.core.operations import SymmOp
     for mat in tqdm(mats, "Processing Materials"):
         if mat.elastic_tensor is not None:
+            # ieee_format is in the IEEE standard frame of this structure; rotate the structure into that frame so
+            # that the tensor and the structure share one Cartesian frame (checked by frame_check.py).
+            struc = mat.structure.copy()
+            rot = Tensor(np.zeros((3, 3))).get_ieee_rotation(struc)
+            struc.apply_operation(SymmOp.from_rotation_and_translation(rot, [0, 0, 0]))
             data.append({
-                "material_id": mat.material_id.string,
-                "material": mat.structure.as_dict(),
+                "material_id": str(mat.material_id),
+                "material": struc.as_dict(),
                 "elasticity_tensor": mat.elastic_tensor.ieee_format
             })
     return data
@@ -191,6 +198,19 @@ def main():
         data = gather_data(mpr)
         with CACHE.open("wt+") as f:
             json.dump(data, f)
+
+    # mp-api's arrow-backed MPDataset can yield each document twice; keep the first record per material_id
+    seen = set()
+    data = [d for d in data if not (d["material_id"] in seen or seen.add(d["material_id"]))]
+    print(f"Unique materials after de-duplication: {len(data)}")
+
+    # Put each tensor and its structure in one Cartesian frame (see frame_align.py); records that fit neither the
+    # original nor the IEEE orientation are dropped and counted.
+    from frame_align import align_frames
+    data, frame_stats = align_frames(data, "elasticity_tensor", "elastic")
+    print(f"Frame alignment: {frame_stats}")
+    with open("./elastic/frame_stats.json", "wt+") as f:
+        json.dump(frame_stats, f, indent=2)
 
     data = remove_impossibilities(data)
 

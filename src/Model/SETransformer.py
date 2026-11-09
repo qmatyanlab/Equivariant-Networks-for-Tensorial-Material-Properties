@@ -18,11 +18,13 @@ class SETransformer(SEGNN):
         norm=None,
         pooling="mean",
         additional_message_irreps=None,
+        head_irreps=None,
         max_radius: float = 8.0
     ):
         self.max_radius = max_radius
         super().__init__(input_irreps, hidden_irreps, output_irreps_lst, edge_attr_irreps, node_attr_irreps, 
-                         num_graph_layers, num_prepool_layers, num_postpool_layers, norm, pooling, additional_message_irreps)
+                         num_graph_layers, num_prepool_layers, num_postpool_layers, norm, pooling, additional_message_irreps,
+                         head_irreps)
         # They finish graph layers with a convolutional layer w/out attention
         self.graph_nn.graph_layers.append(SEConvLayer(self.hidden_irreps, self.hidden_irreps, self.hidden_irreps, 
                                             self.edge_attr_irreps, self.node_attr_irreps, norm=self.norm, 

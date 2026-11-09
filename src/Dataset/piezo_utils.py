@@ -610,6 +610,14 @@ def mixed_psuedotensor_antisymmetrizer(b1):
     where notation indicates _l_m
 '''
 
+L1_X_INDICES = [2, 12]  # x-components of the two l=1 blocks; flipped so the vector blocks transform as (y, z, x)
+
+def real_harmonic_components_piezo_model_basis(voigt):
+    """real_harmonic_components_piezo with the l=1 x-components sign-flipped (r1_real gives c*(y, z, -x))."""
+    c = np.array(real_harmonic_components_piezo(voigt))
+    c[L1_X_INDICES] = -c[L1_X_INDICES]
+    return c
+
 def real_harmonic_components_piezo(voigt):
     cart = voigt2cart(voigt)
     S = r3_symmetrizer(cart)

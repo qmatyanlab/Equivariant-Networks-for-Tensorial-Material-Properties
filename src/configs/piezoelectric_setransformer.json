@@ -5,7 +5,7 @@
     "num_graph_layers": 3,
     "num_prepool_layers": 2,
     "num_postpool_layers": 2,
-    "learning_rate": 5e-5,
+    "learning_rate": 0.005,
     "weight_decay": 0,
     "optimizer": "adam",
     "epochs": 200,
@@ -14,5 +14,5 @@
     "max_neighbors": 12,
     "normalize": true,
     "layer_norm": "batch",
-    "pooling": "max"
+    "pooling": "mean"
 }

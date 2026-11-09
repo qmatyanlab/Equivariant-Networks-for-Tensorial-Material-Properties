@@ -20,57 +20,46 @@ TEST = Path("./dielectric/test")
 
 LIMITING_FACTOR = 5000
 
-def get_crystal_structure_dict(mat_ids: List[str], mpr: MPRester):
+def get_crystal_structure_dict(mats, mpr: MPRester):
     """
-      Gets the dictionary of the unit cells of the material ids. 
+    Structure of the DFPT calculation each tensor comes from: the task named in the dielectric document's `origins`.
+    Both GGA and GGA+U DFPT tasks are accepted (MP applies +U to oxides and fluorides of Co, Cr, Fe, Mn, Mo, Ni, V, W).
+    Until 2026-11-05 only tasks labelled 'GGA DFPT Dielectric' were accepted, which silently dropped every GGA+U
+    material and, for materials with several DFPT tasks, could pair a tensor with another task's structure.
 
-      Args:
-        mat_ids: The material ids to get the structures of
+    Args:
+        mats: dielectric documents with `material_id` and `origins`
         mpr: The mpr api instance
 
-      Returns: 
+    Returns:
         A dictionary of material ids to structure dictionaries
     """
-    #Get summary docs including all task ids for every material
-    sum_docs = []
-    for i in range(0, len(mat_ids), 10000):
-        sum_docs.extend(mpr.materials.summary.search(material_ids=mat_ids[i:i+10000], fields=["material_id", "task_ids"]))
+    mat_to_task = {}
+    for m in mats:
+        tids = [str(o.task_id) for o in (m.origins or []) if o.name == "dielectric"]
+        if tids:
+            mat_to_task[str(m.material_id)] = tids[0]
+    task_ids = sorted(set(mat_to_task.values()))
+    tasks = {}
+    for i in range(0, len(task_ids), 5000):
+        for task in mpr.materials.tasks.search(task_ids=task_ids[i:i+5000], fields=["calc_type", "structure", "task_id"]):
+            tasks[str(task.task_id)] = task  # str(): MP task ids are AlphaIDs since 2026
+    mat_id_to_dfpt_task_id, mat_id_to_struc, calc_types = {}, {}, {}
+    for mid, tid in mat_to_task.items():
+        task = tasks.get(tid)
+        if task is None or "DFPT" not in str(task.calc_type):
+            continue
+        mat_id_to_dfpt_task_id[mid] = tid
+        mat_id_to_struc[mid] = task.structure.as_dict()
+        calc_types[mid] = str(task.calc_type)
 
-    #Search for info on all related task ids
-    all_task_ids = []
-    task_id_to_mat_id = {}
-    for sum_doc in sum_docs:
-        for task_id in sum_doc.task_ids:
-            task_id_to_mat_id[task_id] = sum_doc.material_id
-        all_task_ids += sum_doc.task_ids
-    all_task_info = []
-    for i in range(0, len(all_task_ids), 10000):
-        all_task_info.extend(mpr.materials.tasks.search(task_ids=all_task_ids[i:i+10000], fields= ['calc_type', 'structure', 'task_id', 'output']))
-    tasks_dict = {}
-    
-    for task in all_task_info:
-        tasks_dict[task.task_id.string] = {
-            'calc_type': task['calc_type'],
-            'structure': task['structure'],
-            'output': task['output'],
-            'material_id': task_id_to_mat_id[task.task_id.string]
-        }
-
-    #Collate material_ids with strucutres from tasks of matching calc_type
-    mat_id_to_dfpt_task_id = {}
-    mat_id_to_struc = {}
-    for task_id, task_dict in tasks_dict.items():
-        if task_dict['calc_type'] == 'GGA DFPT Dielectric':
-            mat_id_to_dfpt_task_id[task_dict['material_id']] = task_id
-            mat_id_to_struc[task_dict['material_id']] = task_dict['structure'].as_dict()
-
-    #Report if not all structures are found
-    if len(mat_ids) != len(mat_id_to_dfpt_task_id):
-        print(f'Missing {len(mat_ids)-len(mat_id_to_dfpt_task_id)} material structures for dielectrics!')
-
-    with open('./dielectric/mat_id_to_task_id.pkl','wb') as f:
+    n_unique = len({str(m.material_id) for m in mats})  # the arrow-backed MPDataset can yield each document twice
+    if n_unique != len(mat_id_to_dfpt_task_id):
+        print(f"Missing {n_unique-len(mat_id_to_dfpt_task_id)} material structures for dielectric!")
+    with open("./dielectric/mat_id_to_task_id.pkl", "wb") as f:
         pickle.dump(mat_id_to_dfpt_task_id, f)
-
+    with open("./dielectric/calc_types.json", "wt+") as f:
+        json.dump(calc_types, f, indent=0)
     return mat_id_to_struc
 
 def gather_data(mpr: MPRester, remove_deprecated = True):
@@ -83,7 +72,7 @@ def gather_data(mpr: MPRester, remove_deprecated = True):
     data = []
 
     if remove_deprecated:
-        mats = mpr.materials.dielectric.search(fields=["material_id", "total","ionic","electronic","deprecated","deprecation_reasons"])
+        mats = mpr.materials.dielectric.search(fields=["material_id", "origins", "total","ionic","electronic","deprecated","deprecation_reasons"])
 
         non_dep_mats = []
         for mat in mats:
@@ -92,14 +81,14 @@ def gather_data(mpr: MPRester, remove_deprecated = True):
         mats = non_dep_mats
         
     else:
-        mats = mpr.materials.dielectric.search(fields=["material_id", "total","ionic","electronic"])
+        mats = mpr.materials.dielectric.search(fields=["material_id", "origins", "total","ionic","electronic"])
 
-    mat_ids_to_struc = get_crystal_structure_dict([m.material_id for m in mats], mpr)
+    mat_ids_to_struc = get_crystal_structure_dict(mats, mpr)
     for mat in tqdm(mats, "Processing Materials"):                         
-        if mat.material_id.string in mat_ids_to_struc and mat.total is not None:
+        if str(mat.material_id) in mat_ids_to_struc and mat.total is not None:
             data.append({
-                "material_id": mat.material_id.string,
-                "material": mat_ids_to_struc[mat.material_id.string],
+                "material_id": str(mat.material_id),
+                "material": mat_ids_to_struc[str(mat.material_id)],
                 "dielectric_tensor": mat.total,
                 "ionic_contribution": mat.ionic,
                 "electric_contribution": mat.electronic
@@ -107,7 +96,7 @@ def gather_data(mpr: MPRester, remove_deprecated = True):
     return data
 
 
-def compute_spherical_harmonic_coefficients(data: List[dict], e3nn_trans = True):
+def compute_spherical_harmonic_coefficients(data: List[dict], e3nn_trans = False):
     """
     Computes the spherical harmonic coefficients of the voigt tensors in the data.
 
@@ -199,28 +188,21 @@ def save_data(data: List[dict], dest: Union[str, Path]):
 
 def get_by_ids(data: List[dict]):
     """
-    Sorts the data into train, test, and validate by the IDs.
-
-    Args:
-        data: The data dictionary to sort
-
-    Returns:
-        The train, validation, and test sets by the pregotten ids.
+    Sorts the data into train, validate and test by the split of the original work (<split>/original2024_material_ids.csv,
+    from the 2024 repository). Materials not in that split (new in the database) are not used, as for the elasticity
+    data, so that the splits stay comparable with the original work.
     """
-    train, validate, test = [], [], []
-    train_ids = TRAIN.joinpath("material_ids.csv").read_text().split("\n") 
-    validate_ids = VALIDATE.joinpath("material_ids.csv").read_text().split("\n") 
-    test_ids = TEST.joinpath("material_ids.csv").read_text().split("\n") 
+    pre = {s: set(p.joinpath("original2024_material_ids.csv").read_text().split()) for s, p in
+           [("train", TRAIN), ("validate", VALIDATE), ("test", TEST)]}
+    new = sorted(d["material_id"] for d in data if not any(d["material_id"] in v for v in pre.values()))
+    print(f"Split: {len(data) - len(new)} materials from the 2024 split, {len(new)} new ones not used")
+    out = {"train": [], "validate": [], "test": []}
     for d in data:
-        if d["material_id"] in train_ids:
-            train.append(d)
-        elif d["material_id"] in validate_ids:
-            validate.append(d)
-        elif d["material_id"] in test_ids:
-            test.append(d)
-        else:
-            warnings.warn("Task ID not in used IDs found. Left unused.")
-    return train, validate, test
+        for s in out:
+            if d["material_id"] in pre[s]:
+                out[s].append(d)
+                break
+    return out["train"], out["validate"], out["test"]
 
 def main():
     Path("dielectric").mkdir(exist_ok=True)
@@ -236,13 +218,26 @@ def main():
         with CACHE.open("wt+") as f:
             json.dump(data, f)
 
+    # mp-api's arrow-backed MPDataset can yield each document twice; keep the first record per material_id
+    seen = set()
+    data = [d for d in data if not (d["material_id"] in seen or seen.add(d["material_id"]))]
+    print(f"Unique materials after de-duplication: {len(data)}")
+
+    # Put each tensor and its structure in one Cartesian frame (see frame_align.py); records that fit neither the
+    # original nor the IEEE orientation are dropped and counted.
+    from frame_align import align_frames
+    data, frame_stats = align_frames(data, "electric_contribution", "dielectric")
+    print(f"Frame alignment: {frame_stats}")
+    with open("./dielectric/frame_stats.json", "wt+") as f:
+        json.dump(frame_stats, f, indent=2)
+
     compute_spherical_harmonic_coefficients(data)
 
     data = prune_outliers(data)
 
     print(f"Number of total usable datapoints: {len(data)}")
 
-    if all([p.joinpath("material_ids.csv").exists() for p in [TRAIN, VALIDATE, TEST]]):
+    if all([p.joinpath("original2024_material_ids.csv").exists() for p in [TRAIN, VALIDATE, TEST]]):
         print("Using preset IDs.")
         train, validate, test = get_by_ids(data)
     else:
